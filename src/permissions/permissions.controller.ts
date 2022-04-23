@@ -1,5 +1,5 @@
 import { Controller, Get, Param } from "@nestjs/common";
-import { ActionEnum, RoleEnum, SubjectEnum } from "@prisma/client";
+import { ActionEnum, SubjectEnum } from "@prisma/client";
 import { CheckAbilities } from "../abilities/decorators/check-abilities.decorator";
 import { PermissionsService } from "./permissions.service";
 
@@ -11,5 +11,10 @@ export class PermissionsController {
   @CheckAbilities({ action: ActionEnum.Read, subject: SubjectEnum.Journal })
   async getAll() {
     return this.permissionsService.getAll();
+  }
+
+  @Get(":userId")
+  async getByUserId(@Param("userId") userId: number) {
+    return this.permissionsService.getByUserId(userId);
   }
 }

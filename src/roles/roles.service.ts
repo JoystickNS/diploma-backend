@@ -11,10 +11,14 @@ export class RolesService {
         userId,
       },
       select: {
-        role: true,
+        role: {
+          select: {
+            role: true,
+          },
+        },
       },
     });
 
-    return roles.map((role) => role.role);
+    return roles.map((role) => role.role.role);
   }
 }

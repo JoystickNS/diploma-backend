@@ -1,10 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { RoleEnum } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { RolesService } from "../roles/roles.service";
 
 @Injectable()
 export class PermissionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private rolesService: RolesService
+  ) {}
 
   async getAll() {
     const permissions = await this.prisma.permission.findMany({
@@ -22,9 +26,30 @@ export class PermissionsService {
     }));
   }
 
-  async getByRole(role: RoleEnum) {
-    const permissions = await this.getAll();
+  async getByRoles(roles: RoleEnum[]) {
+    const permissions = await this.prisma.permission.findMany({
+      distinct: ["actionId", "subjectId"],
+      select: {
+        action: true,
+        subject: true,
+      },
+      where: {
+        role: {
+          role: {
+            in: roles,
+          },
+        },
+      },
+    });
 
-    return permissions.filter((permission) => permission.role === role);
+    return permissions.map((permission) => ({
+      action: permission.action.action,
+      subject: permission.subject.subject,
+    }));
+  }
+
+  async getByUserId(userId: number) {
+    const roles = await this.rolesService.getByUserId(userId);
+    return this.getByRoles(roles);
   }
 }

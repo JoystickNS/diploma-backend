@@ -32,10 +32,6 @@ export class AbilitiesGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
     const ability = await this.caslAbilityFactory.defineAbilities(user);
 
-    if (!ability) {
-      return false;
-    }
-
     try {
       requiredRules.forEach((rule) => {
         ForbiddenError.from(ability)
