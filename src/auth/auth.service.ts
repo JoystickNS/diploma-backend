@@ -14,11 +14,13 @@ import { IAppRequest } from "../interfaces/app-request.interface";
 import { ExceptionMessages } from "../constants/exception-messages";
 import { LoginDto } from "./dto/login.dto";
 import { calcTokenLifeTime, refreshCookieOptions } from "../utils/utils";
+import { PermissionsService } from "../permissions/permissions.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
+    private permissionsService: PermissionsService,
     private tokensService: TokensService,
     private usersService: UsersService
   ) {}
@@ -50,6 +52,7 @@ export class AuthService {
       userAgent: req.headers["user-agent"],
       userId: newUser.id,
     });
+    const permissions = await this.permissionsService.getByUserId(user.id);
 
     this.setRefreshCookie(
       res,
@@ -60,6 +63,7 @@ export class AuthService {
     return {
       user: {
         ...newUser,
+        permissions: permissions,
       },
       ...generatedTokens,
     };
@@ -91,6 +95,8 @@ export class AuthService {
       });
     }
 
+    const permissions = await this.permissionsService.getByUserId(user.id);
+
     this.setRefreshCookie(
       res,
       generatedTokens.refreshToken,
@@ -100,6 +106,7 @@ export class AuthService {
     return {
       user: {
         ...user,
+        permissions: permissions,
       },
       ...generatedTokens,
     };
@@ -117,7 +124,12 @@ export class AuthService {
       const { password, ...user } = await this.usersService.getById(
         token.userId
       );
-      return user;
+      const permissions = await this.permissionsService.getByUserId(user.id);
+
+      return {
+        ...user,
+        permissions: permissions,
+      };
     }
 
     throw new UnauthorizedException(ExceptionMessages.Unauthorized);
