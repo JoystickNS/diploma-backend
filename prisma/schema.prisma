@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------START USERS && PERMISSIONS && ROLES------------------ //
+model Action {
+  id          Int          @id @default(autoincrement()) @db.UnsignedSmallInt
+  name        String       @unique @db.VarChar(30)
+  action      ActionEnum
+  permissions Permission[]
+}
+
+enum ActionEnum {
+  Manage
+  Create
+  Read
+  Update
+  Delete
+}
+
+model Permission {
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId    Int     @map("role_id") @db.UnsignedSmallInt
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId Int     @map("subject_id") @db.UnsignedSmallInt
+  action    Action  @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId  Int     @map("action_id") @db.UnsignedSmallInt
+
+  @@id([roleId, subjectId, actionId])
+}
+
+model Role {
+  id          Int            @id @default(autoincrement()) @db.UnsignedSmallInt
+  name        String         @unique @db.VarChar(30)
+  permissions Permission[]
+  role        RoleEnum       @unique
+  users       UsersOnRoles[]
+}
+
+enum RoleEnum {
+  Admin
+  Teacher
+  Manager
+}
+
+model Subject {
+  id          Int          @id @default(autoincrement()) @db.UnsignedSmallInt
+  name        String
+  permissions Permission[]
+  subject     SubjectEnum
+}
+
+enum SubjectEnum {
+  Journal
+  Report
+}
+
+model Token {
+  refreshToken String    @id @db.VarChar(400)
+  expires      DateTime?
+  userAgent    String    @map("user_agent") @db.Text
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int       @db.UnsignedInt
+}
+
+model User {
+  id       Int            @id @default(autoincrement()) @db.UnsignedInt
+  login    String         @unique @db.VarChar(30)
+  password String         @db.VarChar(60)
+  tokens   Token[]
+  roles    UsersOnRoles[]
+}
+
+model UsersOnRoles {
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @map("user_id") @db.UnsignedInt
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId Int  @map("role_id") @db.UnsignedSmallInt
+
+  @@id([userId, roleId])
+  @@map("user_role")
+}
+
+// ------------------END USERS && PERMISSIONS && ROLES------------------ //
