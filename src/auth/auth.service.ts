@@ -52,7 +52,6 @@ export class AuthService {
       userAgent: req.headers["user-agent"],
       userId: newUser.id,
     });
-    const permissions = await this.permissionsService.getByUserId(user.id);
 
     this.setRefreshCookie(
       res,
@@ -63,7 +62,6 @@ export class AuthService {
     return {
       user: {
         ...newUser,
-        permissions: permissions,
       },
       ...generatedTokens,
     };
