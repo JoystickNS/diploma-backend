@@ -59,6 +59,7 @@ model Subject {
 }
 
 enum SubjectEnum {
+  Admin
   Journal
   Report
 }
