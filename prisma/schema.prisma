@@ -19,7 +19,6 @@ model Action {
 }
 
 enum ActionEnum {
-  Manage
   Create
   Read
   Update
