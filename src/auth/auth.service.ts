@@ -63,7 +63,7 @@ export class AuthService {
       user: {
         ...newUser,
       },
-      ...generatedTokens,
+      accessToken: generatedTokens.accessToken,
     };
   }
 
@@ -106,7 +106,7 @@ export class AuthService {
         ...user,
         permissions: permissions,
       },
-      ...generatedTokens,
+      accessToken: generatedTokens.accessToken,
     };
   }
 
@@ -162,7 +162,9 @@ export class AuthService {
           updatedToken.expires
         );
 
-        return generatedTokens;
+        return {
+          accessToken: generatedTokens.accessToken,
+        };
       }
     }
 
