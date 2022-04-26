@@ -63,14 +63,12 @@ export class UsersService {
       where,
     });
     const result = users.map((user) => ({
-      id: user.id,
-      login: user.login,
-      fullName: `${user.lastName} ${user.firstName} ${user.middleName}`,
+      ...user,
       roles: [...user.roles.map((role) => role.role.name)],
     }));
 
     return {
-      ...result,
+      users: result,
       totalCount,
     };
   }
