@@ -68,7 +68,7 @@ export class UsersService {
     }));
 
     return {
-      users: result,
+      items: result,
       totalCount,
     };
   }
