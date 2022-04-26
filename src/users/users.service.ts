@@ -43,6 +43,9 @@ export class UsersService {
       select: {
         id: true,
         login: true,
+        firstName: true,
+        lastName: true,
+        middleName: true,
         roles: {
           select: {
             role: {
@@ -62,6 +65,7 @@ export class UsersService {
     const result = users.map((user) => ({
       id: user.id,
       login: user.login,
+      fullName: `${user.lastName} ${user.firstName} ${user.middleName}`,
       roles: [...user.roles.map((role) => role.role.name)],
     }));
 
