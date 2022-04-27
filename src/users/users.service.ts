@@ -17,7 +17,7 @@ export class UsersService {
   }
 
   async getWithRoles(getUsersRolesDto: GetUsersRolesDto) {
-    const { login, roles, skip, take } = getUsersRolesDto;
+    const { login, roles, skip, take, name } = getUsersRolesDto;
     const where = {} as Prisma.UserWhereInput;
 
     if (login) {
@@ -36,6 +36,47 @@ export class UsersService {
           },
         },
       };
+    }
+
+    if (name) {
+      const names = name.split(" ");
+      if (names.length === 1) {
+        where.OR = [
+          {
+            lastName: {
+              contains: name,
+            },
+          },
+          {
+            firstName: {
+              contains: name,
+            },
+          },
+          {
+            middleName: {
+              contains: name,
+            },
+          },
+        ];
+      } else {
+        where.AND = [
+          {
+            lastName: {
+              contains: names[0] ? names[0] : undefined,
+            },
+          },
+          {
+            firstName: {
+              contains: names[1] ? names[1] : undefined,
+            },
+          },
+          {
+            middleName: {
+              contains: names[2] ? names[2] : undefined,
+            },
+          },
+        ];
+      }
     }
 
     const users = await this.prisma.user.findMany({
