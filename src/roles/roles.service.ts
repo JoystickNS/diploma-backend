@@ -36,17 +36,7 @@ export class RolesService {
   }
 
   async deleteByUserId(deleteRoleByUserIdDto: DeleteRoleByUserIdDto) {
-    const { role, userId } = deleteRoleByUserIdDto;
-    const roleId = (
-      await this.prisma.role.findUnique({
-        where: {
-          role,
-        },
-        select: {
-          id: true,
-        },
-      })
-    ).id;
+    const { roleId, userId } = deleteRoleByUserIdDto;
     const record = await this.prisma.usersOnRoles.findUnique({
       where: {
         userId_roleId: {
