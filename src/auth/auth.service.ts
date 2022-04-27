@@ -72,7 +72,7 @@ export class AuthService {
     const payload = req.user;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...user } = await this.usersService.getById(payload.id);
-    const generatedTokens = this.tokensService.generate(user);
+    const generatedTokens = this.tokensService.generate(new JwtPayload(user));
     const memorizedTokens = await this.tokensService.getAllByUserId(user.id);
     const tokenOptions = {
       refreshToken: generatedTokens.refreshToken,
