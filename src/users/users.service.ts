@@ -92,6 +92,7 @@ export class UsersService {
             role: {
               select: {
                 name: true,
+                role: true,
               },
             },
           },
@@ -105,7 +106,7 @@ export class UsersService {
     });
     const result = users.map((user) => ({
       ...user,
-      roles: [...user.roles.map((role) => role.role.name)],
+      roles: [...user.roles.map((role) => role.role)],
     }));
 
     return {
