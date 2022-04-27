@@ -89,12 +89,7 @@ export class UsersService {
         middleName: true,
         roles: {
           select: {
-            role: {
-              select: {
-                name: true,
-                role: true,
-              },
-            },
+            role: true,
           },
         },
       },
