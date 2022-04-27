@@ -4,4 +4,5 @@ export const ExceptionMessages = {
   IncorrectLoginOrPass: "Неверный логин или пароль",
   LoginAlreadyUsed: (login: string) =>
     `Пользователь с логином ${login} уже существует`,
+  RoleNotFound: "У пользователя не найдена такая роль",
 };
