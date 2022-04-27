@@ -8,14 +8,7 @@ export class RolesService {
   constructor(private prisma: PrismaService) {}
 
   async getAll() {
-    const roles = await this.prisma.role.findMany({
-      select: {
-        name: true,
-        role: true,
-      },
-    });
-
-    return roles;
+    return this.prisma.role.findMany();
   }
 
   async getByUserId(userId: number) {
