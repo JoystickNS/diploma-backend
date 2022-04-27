@@ -30,17 +30,16 @@ export class AuthService {
     res: Response,
     createUserDto: CreateUserDto
   ) {
-    const user = await this.usersService.getByLogin(createUserDto.login);
+    const { login, password } = createUserDto;
+    const user = await this.usersService.getByLogin(login);
 
     if (user) {
-      throw new BadRequestException(
-        ExceptionMessages.LoginAlreadyUsed(createUserDto.login)
-      );
+      throw new BadRequestException(ExceptionMessages.LoginAlreadyUsed(login));
     }
 
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 7);
+    const hashedPassword = await bcrypt.hash(password, 7);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...newUser } = await this.usersService.create({
+    const { password: _, ...newUser } = await this.usersService.create({
       ...createUserDto,
       password: hashedPassword,
     });
@@ -68,6 +67,7 @@ export class AuthService {
   }
 
   async login(req: IAppRequest, res: Response, loginDto: LoginDto) {
+    const { rememberMe } = loginDto;
     const userAgent = req.headers["user-agent"];
     const payload = req.user;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -76,13 +76,13 @@ export class AuthService {
     const memorizedTokens = await this.tokensService.getAllByUserId(user.id);
     const tokenOptions = {
       refreshToken: generatedTokens.refreshToken,
-      expires: loginDto.rememberMe ? calcTokenLifeTime() : null,
+      expires: rememberMe ? calcTokenLifeTime() : null,
       userAgent,
     };
     const isMaxMemorizedTokens =
       memorizedTokens.length === this.configService.get("maxMemorizedTokens");
 
-    if (!loginDto.rememberMe || !isMaxMemorizedTokens) {
+    if (!rememberMe || !isMaxMemorizedTokens) {
       await this.tokensService.create({
         ...tokenOptions,
         userId: user.id,
@@ -98,7 +98,7 @@ export class AuthService {
     this.setRefreshCookie(
       res,
       generatedTokens.refreshToken,
-      loginDto.rememberMe ? calcTokenLifeTime() : null
+      rememberMe ? calcTokenLifeTime() : null
     );
 
     return {
