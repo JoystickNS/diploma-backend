@@ -1,7 +1,5 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
-import { ExceptionMessages } from "../constants/exception-messages";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { DeleteRoleByUserIdDto } from "./dto/delete-role-by-user-id.dto";
 
 @Injectable()
 export class RolesService {
@@ -26,28 +24,5 @@ export class RolesService {
     });
 
     return roles.map((role) => role.role.role);
-  }
-
-  async deleteByUserId(deleteRoleByUserIdDto: DeleteRoleByUserIdDto) {
-    const { roleId, userId } = deleteRoleByUserIdDto;
-    const record = await this.prisma.usersOnRoles.findUnique({
-      where: {
-        userId_roleId: {
-          userId,
-          roleId,
-        },
-      },
-    });
-
-    if (record) {
-      await this.prisma.usersOnRoles.delete({
-        where: {
-          userId_roleId: record,
-        },
-      });
-      return;
-    }
-
-    throw new BadRequestException(ExceptionMessages.RoleNotFound);
   }
 }
