@@ -11,6 +11,7 @@ import configuration from "./config/configuration";
 import { AbilitiesModule } from "./abilities/abilities.module";
 import { AbilitiesGuard } from "./abilities/guards/abilities.guard";
 import { PermissionsModule } from "./permissions/permissions.module";
+import { UsersOnRolesModule } from "./users-on-roles/users-on-roles.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PermissionsModule } from "./permissions/permissions.module";
     RolesModule,
     AbilitiesModule,
     PermissionsModule,
+    UsersOnRolesModule,
   ],
   providers: [
     {
