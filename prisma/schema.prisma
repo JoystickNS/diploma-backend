@@ -25,15 +25,33 @@ enum ActionEnum {
   Delete
 }
 
-model Permission {
-  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId    Int     @map("role_id") @db.UnsignedSmallInt
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId Int     @map("subject_id") @db.UnsignedSmallInt
-  action    Action  @relation(fields: [actionId], references: [id], onDelete: Cascade)
-  actionId  Int     @map("action_id") @db.UnsignedSmallInt
+model Object {
+  id          Int          @id @default(autoincrement()) @db.UnsignedSmallInt
+  name        String
+  permissions Permission[]
+  object      ObjectEnum
 
-  @@id([roleId, subjectId, actionId])
+  @@map("object")
+}
+
+enum ObjectEnum {
+  Admin
+  Journal
+  UMK
+  Report
+
+  @@map("object_num")
+}
+
+model Permission {
+  role     Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId   Int    @map("role_id") @db.UnsignedSmallInt
+  object   Object @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  objectId Int    @map("object_id") @db.UnsignedSmallInt
+  action   Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId Int    @map("action_id") @db.UnsignedSmallInt
+
+  @@id([roleId, objectId, actionId])
 }
 
 model Role {
@@ -48,19 +66,6 @@ enum RoleEnum {
   Admin
   Teacher
   Manager
-}
-
-model Subject {
-  id          Int          @id @default(autoincrement()) @db.UnsignedSmallInt
-  name        String
-  permissions Permission[]
-  subject     SubjectEnum
-}
-
-enum SubjectEnum {
-  Admin
-  Journal
-  Report
 }
 
 model Token {

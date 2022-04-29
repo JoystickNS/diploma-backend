@@ -36,7 +36,7 @@ export class AbilitiesGuard implements CanActivate {
       requiredRules.forEach((rule) => {
         ForbiddenError.from(ability)
           .setMessage(ExceptionMessages.Forbidden)
-          .throwUnlessCan(rule.action, rule.subject);
+          .throwUnlessCan(rule.action, rule.object);
       });
 
       return true;

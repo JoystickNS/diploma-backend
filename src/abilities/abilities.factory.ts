@@ -1,13 +1,13 @@
 import { Ability, AbilityBuilder, AbilityClass } from "@casl/ability";
 import { Injectable } from "@nestjs/common";
-import { ActionEnum, SubjectEnum } from "@prisma/client";
+import { ActionEnum, ObjectEnum } from "@prisma/client";
 import { JwtPayload } from "../classes/jwt-payload";
 import { PermissionsService } from "../permissions/permissions.service";
 import { RolesService } from "../roles/roles.service";
 
-type AppSubjects = SubjectEnum | "all";
+type AppObjects = ObjectEnum | "all";
 
-export type AppAbility = Ability<[ActionEnum | string, AppSubjects]>;
+export type AppAbility = Ability<[ActionEnum | string, AppObjects]>;
 
 @Injectable()
 export class AbilitiesFactory {
@@ -24,7 +24,7 @@ export class AbilitiesFactory {
       const permissions = await this.permissionsService.getByRoles(roles);
 
       permissions.forEach((permission) =>
-        builder.can(permission.action.toLowerCase(), permission.subject)
+        builder.can(permission.action.toLowerCase(), permission.object)
       );
     }
 

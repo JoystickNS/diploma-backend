@@ -1,6 +1,6 @@
-import { ActionEnum, SubjectEnum } from "@prisma/client";
+import { ActionEnum, ObjectEnum } from "@prisma/client";
 
 export interface IRequiredRule {
   action: ActionEnum;
-  subject: SubjectEnum;
+  object: ObjectEnum;
 }

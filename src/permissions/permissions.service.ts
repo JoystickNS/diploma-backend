@@ -15,23 +15,23 @@ export class PermissionsService {
       select: {
         action: true,
         role: true,
-        subject: true,
+        object: true,
       },
     });
 
     return permissions.map((permission) => ({
       role: permission.role.role,
-      subject: permission.subject.subject,
+      object: permission.object.object,
       action: permission.action.action,
     }));
   }
 
   async getByRoles(roles: RoleEnum[]) {
     const permissions = await this.prisma.permission.findMany({
-      distinct: ["actionId", "subjectId"],
+      distinct: ["actionId", "objectId"],
       select: {
         action: true,
-        subject: true,
+        object: true,
       },
       where: {
         role: {
@@ -44,7 +44,7 @@ export class PermissionsService {
 
     return permissions.map((permission) => ({
       action: permission.action.action,
-      subject: permission.subject.subject,
+      object: permission.object.object,
     }));
   }
 

@@ -1,5 +1,5 @@
 import { Controller, Get, Param } from "@nestjs/common";
-import { ActionEnum, SubjectEnum } from "@prisma/client";
+import { ActionEnum, ObjectEnum } from "@prisma/client";
 import { CheckAbilities } from "../abilities/decorators/check-abilities.decorator";
 import { PermissionsService } from "./permissions.service";
 
@@ -8,7 +8,7 @@ export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Get()
-  @CheckAbilities({ action: ActionEnum.Read, subject: SubjectEnum.Journal })
+  @CheckAbilities({ action: ActionEnum.Read, object: ObjectEnum.Journal })
   async getAll() {
     return this.permissionsService.getAll();
   }
