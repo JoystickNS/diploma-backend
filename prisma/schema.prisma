@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
 }
 
 datasource db {
@@ -10,10 +11,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ------------------START USERS && PERMISSIONS && ROLES------------------ //
+// ------------------START USERS && PERMISSIONS && ROLES && TOKENS------------------ //
 model Action {
-  id          Int          @id @default(autoincrement()) @db.UnsignedSmallInt
-  name        String       @unique @db.VarChar(30)
+  id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
+  name String @unique @db.VarChar(30)
+
   action      ActionEnum
   permissions Permission[]
 }
@@ -26,8 +28,9 @@ enum ActionEnum {
 }
 
 model Object {
-  id          Int          @id @default(autoincrement()) @db.UnsignedSmallInt
-  name        String
+  id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
+  name String @db.VarChar(50)
+
   permissions Permission[]
   object      ObjectEnum
 
@@ -37,10 +40,7 @@ model Object {
 enum ObjectEnum {
   Admin
   Journal
-  UMK
   Report
-
-  @@map("object_num")
 }
 
 model Permission {
@@ -55,8 +55,9 @@ model Permission {
 }
 
 model Role {
-  id          Int            @id @default(autoincrement()) @db.UnsignedSmallInt
-  name        String         @unique @db.VarChar(30)
+  id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
+  name String @unique @db.VarChar(30)
+
   permissions Permission[]
   role        RoleEnum       @unique
   users       UsersOnRoles[]
@@ -70,22 +71,25 @@ enum RoleEnum {
 
 model Token {
   refreshToken String    @id @db.VarChar(400)
-  expires      DateTime?
+  expires      DateTime? @db.DateTime()
   userAgent    String    @map("user_agent") @db.Text
   updatedAt    DateTime  @updatedAt @map("updated_at")
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       Int       @db.UnsignedInt
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @map("user_id") @db.UnsignedInt
 }
 
 model User {
-  id         Int            @id @default(autoincrement()) @db.UnsignedInt
-  firstName  String         @map("first_name") @db.VarChar(30)
-  lastName   String         @map("last_name") @db.VarChar(30)
-  middleName String         @map("middle_name") @db.VarChar(30)
-  login      String         @unique @db.VarChar(30)
-  password   String         @db.VarChar(60)
-  tokens     Token[]
-  roles      UsersOnRoles[]
+  id         Int    @id @default(autoincrement()) @db.UnsignedInt
+  lastName   String @map("last_name") @db.VarChar(30)
+  firstName  String @map("first_name") @db.VarChar(30)
+  middleName String @map("middle_name") @db.VarChar(30)
+  login      String @unique @db.VarChar(30)
+  password   String @db.VarChar(60)
+
+  tokens   Token[]
+  roles    UsersOnRoles[]
+  journals Journal[]
 }
 
 model UsersOnRoles {
@@ -98,4 +102,264 @@ model UsersOnRoles {
   @@map("user_role")
 }
 
-// ------------------END USERS && PERMISSIONS && ROLES------------------ //
+// ------------------END USERS && PERMISSIONS && ROLES && TOKENS------------------ //
+
+// ------------------START STUDENTS && GROUPS && SUBGROUPS && STATUSES------------------ //
+
+// Кафедра
+model Department {
+  id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
+  name String @unique @db.VarChar(250)
+
+  groups Group[]
+}
+
+model Group {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  name      String @unique @db.VarChar(50)
+  startYear Int    @map("start_year") @db.UnsignedSmallInt
+
+  students  Student[]
+  subgroups Subgroup[]
+
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  departmentId Int        @map("department_id") @db.UnsignedTinyInt
+}
+
+model Student {
+  id           Int    @id @default(autoincrement()) @db.UnsignedInt
+  lastName     String @map("last_name") @db.VarChar(30)
+  firstName    String @map("first_name") @db.VarChar(30)
+  middleName   String @map("middle_name") @db.VarChar(30)
+  passportID   String @unique @map("passport_ID") @db.VarChar(6)
+  recordBookID String @unique @map("record_book_ID") @db.VarChar(6)
+
+  attestations StudentsOnAttestations[]
+  visits       Visit[]
+  points       Points[]
+  statuses     StudentStatusesOnStudents[]
+  subgroups    StudentsOnSubgroups[]
+
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int   @map("group_id") @db.UnsignedInt
+}
+
+model StudentStatus {
+  id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
+  name String @db.VarChar(50)
+
+  students StudentStatusesOnStudents[]
+
+  @@map("student_status")
+}
+
+model StudentStatusesOnStudents {
+  dateOfIssue DateTime  @map("date_of_issue")
+  endDate     DateTime? @map("end_date")
+
+  studentStatus   StudentStatus @relation(fields: [studentStatusId], references: [id], onDelete: Cascade)
+  studentStatusId Int           @map("student_status_id") @db.UnsignedTinyInt
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       Int           @map("student_id") @db.UnsignedInt
+
+  @@id([studentStatusId, studentId])
+  @@map("student_status_student")
+}
+
+model StudentsOnSubgroups {
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  Int      @map("student_id") @db.UnsignedInt
+  subgroup   Subgroup @relation(fields: [subgroupId], references: [id], onDelete: Cascade)
+  subgroupId Int      @map("subgroup_id") @db.UnsignedInt
+
+  @@id([studentId, subgroupId])
+  @@map("student_subgroup")
+}
+
+// Подгруппа
+model Subgroup {
+  id Int @id @default(autoincrement()) @db.UnsignedInt
+
+  students StudentsOnSubgroups[]
+  journals SubgroupsOnJournals[]
+
+  group            Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId          Int            @map("group_id") @db.UnsignedInt
+  subgroupNumber   SubgroupNumber @relation(fields: [subgroupNumberId], references: [id], onDelete: Cascade)
+  subgroupNumberId Int            @map("subgroup_number_id") @db.UnsignedTinyInt
+}
+
+model SubgroupNumber {
+  id    Int @id @default(autoincrement()) @db.UnsignedTinyInt
+  value Int @unique @db.UnsignedTinyInt
+
+  subgroups Subgroup[]
+
+  @@map("subgroup_number")
+}
+
+model SubgroupsOnJournals {
+  subgroup   Subgroup @relation(fields: [subgroupId], references: [id], onDelete: Cascade)
+  subgroupId Int      @map("subgroup_id") @db.UnsignedInt
+  journal    Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId  Int      @map("journal_id") @db.UnsignedInt
+
+  @@id([subgroupId, journalId])
+  @@map("subgroup_journal")
+}
+
+// ------------------END STUDENTS && GROUPS && STATUSES------------------ //
+
+// ------------------START ATTESTATIONS && GRADES && JOURNALS && LESSONS && POINTS && VISITS------------------ //
+
+model Attestation {
+  id            Int     @id @default(autoincrement()) @db.UnsignedInt
+  workTopic     String? @map("work_topic") @db.VarChar(250)
+  maximumPoints Int?    @map("maximum_points") @db.UnsignedSmallInt
+
+  students StudentsOnAttestations[]
+
+  workType   WorkType @relation(fields: [workTypeId], references: [id], onDelete: Cascade)
+  workTypeId Int      @map("work_type_id") @db.UnsignedTinyInt
+  journal    Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId  Int      @map("journal_id") @db.UnsignedInt
+}
+
+model Grade {
+  id    Int @id @default(autoincrement()) @db.UnsignedTinyInt
+  value Int @unique @db.UnsignedTinyInt
+
+  journals JournalsOnGrades[]
+}
+
+model Journal {
+  id              Int      @id @default(autoincrement()) @db.UnsignedInt
+  lectureHours    Int      @map("lecture_hours") @db.UnsignedSmallInt
+  practiceHours   Int      @map("practice_hours") @db.UnsignedSmallInt
+  laboratoryHours Int      @map("laboratory_hours") @db.UnsignedSmallInt
+  maximumPoints   Int?     @map("maximum_points") @db.UnsignedSmallInt
+  createdAt       DateTime @default(now()) @map("created_at")
+  deleted         Boolean  @default(false)
+
+  attestations Attestation[]
+  grades       JournalsOnGrades[]
+  lessons      Lesson[]
+  lessonTopics LessonTopic[]
+  subgroups    SubgroupsOnJournals[]
+
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  disciplineId Int        @map("discipline_id") @db.UnsignedSmallInt
+  control      Control    @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  controlId    Int        @map("control_id") @db.UnsignedTinyInt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int        @map("user_id") @db.UnsignedInt
+}
+
+model JournalsOnGrades {
+  minimumPoints Int @map("minimum_points") @db.UnsignedSmallInt
+
+  grade     Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  gradeId   Int     @map("grade_id") @db.UnsignedTinyInt
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId Int     @map("journal_id") @db.UnsignedInt
+
+  @@id([gradeId, journalId])
+  @@map("journal_grade")
+}
+
+// Занятие
+model Lesson {
+  id   Int      @id @default(autoincrement()) @db.UnsignedInt
+  date DateTime @db.DateTime()
+
+  visits Visit[]
+  points Points[]
+
+  journal      Journal    @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId    Int        @map("journal_id") @db.UnsignedInt
+  lessonType   LessonType @relation(fields: [lessonTypeId], references: [id], onDelete: Cascade)
+  lessonTypeId Int        @map("lesson_type_id") @db.UnsignedTinyInt
+}
+
+model LessonTopic {
+  id            Int    @id @default(autoincrement()) @db.UnsignedInt
+  name          String @db.VarChar(200)
+  numberOfHours Int    @default(2) @map("number_of_hours") @db.UnsignedSmallInt
+
+  journal      Journal    @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId    Int        @map("journal_id") @db.UnsignedInt
+  lessonType   LessonType @relation(fields: [lessonTypeId], references: [id], onDelete: Cascade)
+  lessonTypeId Int        @map("lesson_type_id") @db.UnsignedTinyInt
+
+  @@map("lesson_topic")
+}
+
+model LessonType {
+  id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
+  name String @unique @db.VarChar(50)
+
+  lessons      Lesson[]
+  lessonTopics LessonTopic[]
+
+  @@map("lesson_type")
+}
+
+model Points {
+  id             Int    @id @default(autoincrement()) @db.UnsignedInt
+  annotation     String @db.VarChar(100)
+  numberOfPoints Int    @map("number_of_points") @db.UnsignedTinyInt
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int     @map("student_id") @db.UnsignedInt
+  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  Int     @map("lesson_id") @db.UnsignedInt
+}
+
+model StudentsOnAttestations {
+  attestation   Attestation @relation(fields: [attestationId], references: [id], onDelete: Cascade)
+  attestationId Int         @map("attestation_id") @db.UnsignedInt
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId     Int         @map("student_id") @db.UnsignedInt
+
+  credited Boolean @default(false)
+
+  @@id([attestationId, studentId])
+  @@map("student_attestation")
+}
+
+model Visit {
+  id             Int     @id @default(autoincrement()) @db.UnsignedInt
+  isPresenced    Boolean @default(true) @map("is_presenced")
+  numberOfPoints Int     @map("number_of_points") @db.UnsignedTinyInt
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int     @map("student_id") @db.UnsignedInt
+  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  Int     @map("lesson_id") @db.UnsignedInt
+}
+
+// ------------------END ATTESTATIONS && GRADES && JOURNALS && LESSONS && POINTS && VISITS------------------ //
+
+// Контроль
+model Control {
+  id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
+  name String @unique @db.VarChar(50)
+
+  journals Journal[]
+}
+
+model Discipline {
+  id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
+  name String @unique @db.VarChar(150)
+
+  journals Journal[]
+}
+
+model WorkType {
+  id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
+  name String @unique @db.VarChar(50)
+
+  attestations Attestation[]
+
+  @@map("work_type")
+}
