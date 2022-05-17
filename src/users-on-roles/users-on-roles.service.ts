@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { ExceptionMessages } from "../constants/exception-messages";
 import { PrismaService } from "../prisma/prisma.service";
 import { UserOnRoleDto } from "./dto/user-on-role.dto";
@@ -6,6 +6,12 @@ import { UserOnRoleDto } from "./dto/user-on-role.dto";
 @Injectable()
 export class UsersOnRolesService {
   constructor(private prisma: PrismaService) {}
+
+  async addByUserId(userOnRoleDto: UserOnRoleDto) {
+    return this.prisma.usersOnRoles.create({
+      data: userOnRoleDto,
+    });
+  }
 
   async deleteByUserId(userOnRoleDto: UserOnRoleDto) {
     const { roleId, userId } = userOnRoleDto;
@@ -27,6 +33,6 @@ export class UsersOnRolesService {
       return;
     }
 
-    throw new BadRequestException(ExceptionMessages.RoleNotFound);
+    throw new NotFoundException(ExceptionMessages.RoleNotFound);
   }
 }
