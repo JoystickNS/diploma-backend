@@ -3,21 +3,21 @@ import { IsInt, IsOptional, IsString } from "class-validator";
 export class GetUsersRolesDto {
   @IsOptional()
   @IsInt()
-  skip: number;
+  skip?: number;
 
   @IsOptional()
   @IsInt()
-  take: number;
+  take?: number;
 
   @IsOptional()
   @IsString()
-  name: string;
+  name?: string;
 
   @IsOptional()
   @IsString()
-  login: string;
+  login?: string;
 
   @IsOptional()
   @IsString({ each: true })
-  roles: string[];
+  roles?: string[];
 }
