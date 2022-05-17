@@ -12,6 +12,14 @@ import { AbilitiesModule } from "./abilities/abilities.module";
 import { AbilitiesGuard } from "./abilities/guards/abilities.guard";
 import { PermissionsModule } from "./permissions/permissions.module";
 import { UsersOnRolesModule } from "./users-on-roles/users-on-roles.module";
+import { JournalsModule } from "./journals/journals.module";
+import { DisciplinesModule } from "./disciplines/disciplines.module";
+import { ControlsModule } from "./controls/controls.module";
+import { GroupsModule } from "./groups/groups.module";
+import { WorkTypesModule } from "./work-types/work-types.module";
+import { SubgroupsModule } from "./subgroups/subgroups.module";
+import { LessonsModule } from "./lessons/lessons.module";
+import { LessonTypesModule } from "./lesson-types/lesson-types.module";
 
 @Module({
   imports: [
@@ -28,6 +36,14 @@ import { UsersOnRolesModule } from "./users-on-roles/users-on-roles.module";
     AbilitiesModule,
     PermissionsModule,
     UsersOnRolesModule,
+    JournalsModule,
+    DisciplinesModule,
+    ControlsModule,
+    GroupsModule,
+    WorkTypesModule,
+    SubgroupsModule,
+    LessonsModule,
+    LessonTypesModule,
   ],
   providers: [
     {
