@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { Response } from "express";
 import { CreateUserDto } from "src/users/dto/create-user.dto";
-import { IAppRequest } from "../interfaces/app-request.interface";
+import { IAppRequest } from "../interfaces/app-request";
 import { AuthService } from "./auth.service";
 import { WithoutAuthKey } from "./decorators/without-auth-key.decorator";
 import { LoginDto } from "./dto/login.dto";

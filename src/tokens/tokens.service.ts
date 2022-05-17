@@ -33,9 +33,7 @@ export class TokensService {
 
   async create(createTokenDto: CreateTokenDto) {
     return this.prisma.token.create({
-      data: {
-        ...createTokenDto,
-      },
+      data: createTokenDto,
     });
   }
 

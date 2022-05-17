@@ -10,7 +10,7 @@ import { TokensService } from "src/tokens/tokens.service";
 import { Response } from "express";
 import { ConfigService } from "@nestjs/config";
 import { JwtPayload } from "../classes/jwt-payload";
-import { IAppRequest } from "../interfaces/app-request.interface";
+import { IAppRequest } from "../interfaces/app-request";
 import { ExceptionMessages } from "../constants/exception-messages";
 import { LoginDto } from "./dto/login.dto";
 import { calcTokenLifeTime, refreshCookieOptions } from "../utils/utils";
