@@ -1,12 +1,13 @@
-import { IsDate, IsInt } from "class-validator";
+import { IsDate, IsInt, IsOptional } from "class-validator";
 
 export class CreateLessonDto {
+  @IsOptional()
   @IsDate()
-  date: Date;
+  date?: Date;
 
   @IsInt()
   journalId: number;
 
   @IsInt()
-  lessonTypeId: number;
+  lessonTopicId: number;
 }
