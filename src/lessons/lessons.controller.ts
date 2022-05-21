@@ -1,6 +1,8 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Put, Query } from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
-import { CreateLessonDto } from "./dto/create-lesson.dto";
+import { GetLessonsDto } from "./dto/get-lessons.dto";
+import { UpdateLessonDto } from "./dto/update-lesson.dto";
+import { UpdateManyLessonsDto } from "./dto/update-many-lessons.dto";
 import { LessonsService } from "./lessons.service";
 
 @WithoutAuthKey()
@@ -8,14 +10,23 @@ import { LessonsService } from "./lessons.service";
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
 
-  // @Post("create-one")
-  // async create(@Body() createLessonDto: CreateLessonDto) {
-  //   return this.lessonsService.create(createLessonDto);
-  // }
+  @Get()
+  async get(@Query() params: GetLessonsDto) {
+    return this.lessonsService.get(params);
+  }
 
-  @Post("create-many")
-  async createMany(@Body() createLessonsDto: CreateLessonDto[]) {
-    console.log(createLessonsDto);
-    return this.lessonsService.createMany(createLessonsDto);
+  @Put()
+  async update(@Body() updateLessonDto: UpdateLessonDto) {
+    return this.lessonsService.updateOne(updateLessonDto);
+  }
+
+  @Put("update-many")
+  async updateMany(@Body() updateManyLessonDto: UpdateManyLessonsDto) {
+    return this.lessonsService.updateMany(updateManyLessonDto);
+  }
+
+  @Put(":lessonId")
+  async updateDateToNull(@Param("lessonId") lessonId: number) {
+    return this.lessonsService.updateOne({ id: lessonId, date: null });
   }
 }
