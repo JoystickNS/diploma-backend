@@ -7,6 +7,7 @@ import {
   IsString,
   ValidateNested,
   MaxLength,
+  IsDefined,
 } from "class-validator";
 import { CreateAttestationDto } from "../../dto/create-attestation.dto";
 import { CreateLessonTopicDto } from "../../dto/create-lesson-topic.dto";
@@ -56,23 +57,23 @@ export class CreateJournalDto {
   @Min(0)
   readonly maximumPoints?: number;
 
-  @IsOptional()
+  @IsDefined()
   @ValidateNested({ each: true })
   @Type(() => CreateAttestationDto)
-  readonly attestations?: CreateAttestationDto[];
+  readonly attestations: CreateAttestationDto[];
 
-  @IsOptional()
+  @IsDefined()
   @ValidateNested({ each: true })
   @Type(() => CreateLessonTopicDto)
-  readonly lectureTopics?: CreateLessonTopicDto[];
+  readonly lectureTopics: CreateLessonTopicDto[];
 
-  @IsOptional()
+  @IsDefined()
   @ValidateNested({ each: true })
   @Type(() => CreateLessonTopicDto)
-  readonly practiceTopics?: CreateLessonTopicDto[];
+  readonly practiceTopics: CreateLessonTopicDto[];
 
-  @IsOptional()
+  @IsDefined()
   @ValidateNested({ each: true })
   @Type(() => CreateLessonTopicDto)
-  readonly laboratoryTopics?: CreateLessonTopicDto[];
+  readonly laboratoryTopics: CreateLessonTopicDto[];
 }

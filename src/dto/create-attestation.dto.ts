@@ -1,10 +1,9 @@
 import { IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
 
 export class CreateAttestationDto {
-  @IsOptional()
   @IsString()
   @MaxLength(50)
-  readonly workType?: string;
+  readonly workType: string;
 
   @IsOptional()
   @IsString()
