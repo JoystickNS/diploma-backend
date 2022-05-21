@@ -269,22 +269,23 @@ model JournalsOnGrades {
 
 // Занятие
 model Lesson {
-  id   Int      @id @default(autoincrement()) @db.UnsignedInt
-  date DateTime @db.DateTime()
+  id   Int       @id @default(autoincrement()) @db.UnsignedInt
+  date DateTime? @db.DateTime()
 
   visits Visit[]
   points Points[]
 
-  journal      Journal    @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  journalId    Int        @map("journal_id") @db.UnsignedInt
-  lessonType   LessonType @relation(fields: [lessonTypeId], references: [id], onDelete: Cascade)
-  lessonTypeId Int        @map("lesson_type_id") @db.UnsignedTinyInt
+  journal       Journal     @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId     Int         @map("journal_id") @db.UnsignedInt
+  lessonTopic   LessonTopic @relation(fields: [lessonTopicId], references: [id], onDelete: Cascade)
+  lessonTopicId Int         @map("lesson_topic_id") @db.UnsignedInt
 }
 
 model LessonTopic {
-  id            Int    @id @default(autoincrement()) @db.UnsignedInt
-  name          String @db.VarChar(200)
-  numberOfHours Int    @default(2) @map("number_of_hours") @db.UnsignedSmallInt
+  id   Int    @id @default(autoincrement()) @db.UnsignedInt
+  name String @db.VarChar(200)
+
+  lessons Lesson[]
 
   journal      Journal    @relation(fields: [journalId], references: [id], onDelete: Cascade)
   journalId    Int        @map("journal_id") @db.UnsignedInt
@@ -298,7 +299,6 @@ model LessonType {
   id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
   name String @unique @db.VarChar(50)
 
-  lessons      Lesson[]
   lessonTopics LessonTopic[]
 
   @@map("lesson_type")
