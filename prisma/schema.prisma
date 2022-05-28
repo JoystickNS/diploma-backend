@@ -27,40 +27,50 @@ enum ActionEnum {
   Delete
 }
 
-model Object {
+model AccessObject {
   id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
   name String @db.VarChar(50)
 
-  permissions Permission[]
-  object      ObjectEnum
+  permissions  Permission[]
+  accessObject AccessObjectEnum @map("access_object")
 
-  @@map("object")
+  @@map("access_object")
 }
 
-enum ObjectEnum {
+enum AccessObjectEnum {
   Admin
   Journal
   Report
 }
 
 model Permission {
-  role     Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId   Int    @map("role_id") @db.UnsignedSmallInt
-  object   Object @relation(fields: [objectId], references: [id], onDelete: Cascade)
-  objectId Int    @map("object_id") @db.UnsignedSmallInt
-  action   Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
-  actionId Int    @map("action_id") @db.UnsignedSmallInt
+  id Int @id @default(autoincrement()) @db.UnsignedSmallInt
 
-  @@id([roleId, objectId, actionId])
+  roles RolesOnPermissions[]
+
+  accessObject   AccessObject @relation(fields: [accessObjectId], references: [id], onDelete: Cascade)
+  accessObjectId Int          @map("access_object_id") @db.UnsignedSmallInt
+  action         Action       @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId       Int          @map("action_id") @db.UnsignedSmallInt
 }
 
 model Role {
   id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
   name String @unique @db.VarChar(30)
 
-  permissions Permission[]
-  role        RoleEnum       @unique
+  permissions RolesOnPermissions[]
+  role        RoleEnum             @unique
   users       UsersOnRoles[]
+}
+
+model RolesOnPermissions {
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       Int        @map("role_id") @db.UnsignedSmallInt
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId Int        @map("permission_id") @db.UnsignedSmallInt
+
+  @@id([roleId, permissionId])
+  @@map("role_permission")
 }
 
 enum RoleEnum {
@@ -106,24 +116,13 @@ model UsersOnRoles {
 
 // ------------------START STUDENTS && GROUPS && SUBGROUPS && STATUSES------------------ //
 
-// Кафедра
-model Department {
-  id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
-  name String @unique @db.VarChar(250)
-
-  groups Group[]
-}
-
 model Group {
   id        Int    @id @default(autoincrement()) @db.UnsignedInt
   name      String @unique @db.VarChar(50)
   startYear Int    @map("start_year") @db.UnsignedSmallInt
 
-  students  Student[]
+  students  StudentsOnGroups[]
   subgroups Subgroup[]
-
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  departmentId Int        @map("department_id") @db.UnsignedTinyInt
 }
 
 model Student {
@@ -135,13 +134,24 @@ model Student {
   recordBookID String @unique @map("record_book_ID") @db.VarChar(6)
 
   attestations StudentsOnAttestations[]
+  groups       StudentsOnGroups[]
   visits       Visit[]
   points       Points[]
   statuses     StudentStatusesOnStudents[]
   subgroups    StudentsOnSubgroups[]
+}
 
-  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  groupId Int   @map("group_id") @db.UnsignedInt
+model StudentsOnGroups {
+  id              Int       @id @default(autoincrement()) @db.UnsignedInt
+  dateOfIssue     DateTime  @map("date_of_issue")
+  dateOfDischarge DateTime? @map("date_of_discharge")
+
+  group     Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   Int     @map("group_id") @db.UnsignedInt
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int     @map("student_id") @db.UnsignedInt
+
+  @@map("student_group")
 }
 
 model StudentStatus {
@@ -176,12 +186,12 @@ model StudentsOnSubgroups {
   @@map("student_subgroup")
 }
 
-// Подгруппа
 model Subgroup {
   id Int @id @default(autoincrement()) @db.UnsignedInt
 
-  students StudentsOnSubgroups[]
   journals SubgroupsOnJournals[]
+  lessons  LessonsOnSubgroups[]
+  students StudentsOnSubgroups[]
 
   group            Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId          Int            @map("group_id") @db.UnsignedInt
@@ -219,10 +229,10 @@ model Attestation {
 
   students StudentsOnAttestations[]
 
-  workType   WorkType @relation(fields: [workTypeId], references: [id], onDelete: Cascade)
-  workTypeId Int      @map("work_type_id") @db.UnsignedTinyInt
-  journal    Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  journalId  Int      @map("journal_id") @db.UnsignedInt
+  workType   WorkType? @relation(fields: [workTypeId], references: [id], onDelete: Cascade)
+  workTypeId Int?      @map("work_type_id") @db.UnsignedTinyInt
+  journal    Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId  Int       @map("journal_id") @db.UnsignedInt
 }
 
 model Grade {
@@ -267,23 +277,24 @@ model JournalsOnGrades {
   @@map("journal_grade")
 }
 
-// Занятие
 model Lesson {
-  id   Int       @id @default(autoincrement()) @db.UnsignedInt
-  date DateTime? @db.DateTime()
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  conducted Boolean  @default(false)
+  date      DateTime @db.DateTime()
 
-  visits Visit[]
-  points Points[]
+  visits    Visit[]
+  points    Points[]
+  subgroups LessonsOnSubgroups[]
 
-  journal       Journal     @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  journalId     Int         @map("journal_id") @db.UnsignedInt
-  lessonTopic   LessonTopic @relation(fields: [lessonTopicId], references: [id], onDelete: Cascade)
-  lessonTopicId Int         @map("lesson_topic_id") @db.UnsignedInt
+  journal       Journal      @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId     Int          @map("journal_id") @db.UnsignedInt
+  lessonTopic   LessonTopic? @relation(fields: [lessonTopicId], references: [id], onDelete: Cascade)
+  lessonTopicId Int?         @map("lesson_topic_id") @db.UnsignedInt
 }
 
 model LessonTopic {
   id   Int    @id @default(autoincrement()) @db.UnsignedInt
-  name String @db.VarChar(200)
+  name String @db.VarChar(250)
 
   lessons Lesson[]
 
@@ -293,6 +304,16 @@ model LessonTopic {
   lessonTypeId Int        @map("lesson_type_id") @db.UnsignedTinyInt
 
   @@map("lesson_topic")
+}
+
+model LessonsOnSubgroups {
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId   Int      @map("lesson_id") @db.UnsignedInt
+  subgroup   Subgroup @relation(fields: [subgroupId], references: [id], onDelete: Cascade)
+  subgroupId Int      @map("subgroup_id") @db.UnsignedInt
+
+  @@id([lessonId, subgroupId])
+  @@map("lesson_subgroup")
 }
 
 model LessonType {
@@ -316,21 +337,21 @@ model Points {
 }
 
 model StudentsOnAttestations {
+  credited      Boolean?
+  pointsOrGrade Int?     @map("points_or_grade") @db.UnsignedTinyInt
+
   attestation   Attestation @relation(fields: [attestationId], references: [id], onDelete: Cascade)
   attestationId Int         @map("attestation_id") @db.UnsignedInt
   student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId     Int         @map("student_id") @db.UnsignedInt
-
-  credited Boolean @default(false)
 
   @@id([attestationId, studentId])
   @@map("student_attestation")
 }
 
 model Visit {
-  id             Int     @id @default(autoincrement()) @db.UnsignedInt
-  isPresenced    Boolean @default(true) @map("is_presenced")
-  numberOfPoints Int     @map("number_of_points") @db.UnsignedTinyInt
+  id       Int     @id @default(autoincrement()) @db.UnsignedInt
+  isAbsent Boolean @default(false) @map("is_absent")
 
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId Int     @map("student_id") @db.UnsignedInt
@@ -340,7 +361,6 @@ model Visit {
 
 // ------------------END ATTESTATIONS && GRADES && JOURNALS && LESSONS && POINTS && VISITS------------------ //
 
-// Контроль
 model Control {
   id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
   name String @unique @db.VarChar(50)

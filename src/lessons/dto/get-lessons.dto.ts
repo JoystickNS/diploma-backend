@@ -1,3 +1,6 @@
-export interface GetLessonsDto {
-  journalId: string;
+import { IsInt } from "class-validator";
+
+export class GetLessonsDto {
+  @IsInt()
+  journalId: number;
 }

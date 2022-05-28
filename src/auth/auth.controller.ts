@@ -26,9 +26,9 @@ export class AuthController {
   async registration(
     @Req() req: IAppRequest,
     @Res({ passthrough: true }) res: Response,
-    @Body() createUserDto: CreateUserDto
+    @Body() dto: CreateUserDto
   ) {
-    return this.authService.registration(req, res, createUserDto);
+    return this.authService.registration(req, res, dto);
   }
 
   @Post("login")
@@ -36,9 +36,9 @@ export class AuthController {
   async login(
     @Req() req: IAppRequest,
     @Res({ passthrough: true }) res: Response,
-    @Body() loginDto: LoginDto
+    @Body() dto: LoginDto
   ) {
-    return this.authService.login(req, res, loginDto);
+    return this.authService.login(req, res, dto);
   }
 
   @Get("me")

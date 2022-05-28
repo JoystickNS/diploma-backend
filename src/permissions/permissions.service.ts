@@ -1,55 +1,99 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { RoleEnum } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { RolesService } from "../roles/roles.service";
+import { UsersService } from "../users/users.service";
 
 @Injectable()
 export class PermissionsService {
   constructor(
-    private prisma: PrismaService,
-    private rolesService: RolesService
+    private readonly prisma: PrismaService,
+    private readonly rolesService: RolesService,
+    private readonly usersService: UsersService
   ) {}
 
   async getAll() {
-    const permissions = await this.prisma.permission.findMany({
+    const permissions = await this.prisma.rolesOnPermissions.findMany({
       select: {
-        action: true,
         role: true,
-        object: true,
-      },
-    });
-
-    return permissions.map((permission) => ({
-      role: permission.role.role,
-      object: permission.object.object,
-      action: permission.action.action,
-    }));
-  }
-
-  async getByRoles(roles: RoleEnum[]) {
-    const permissions = await this.prisma.permission.findMany({
-      distinct: ["actionId", "objectId"],
-      select: {
-        action: true,
-        object: true,
-      },
-      where: {
-        role: {
-          role: {
-            in: roles,
+        permission: {
+          select: {
+            accessObject: {
+              select: {
+                accessObject: true,
+              },
+            },
+            action: {
+              select: {
+                action: true,
+              },
+            },
           },
         },
       },
     });
 
     return permissions.map((permission) => ({
-      action: permission.action.action,
-      object: permission.object.object,
+      role: permission.role.role,
+      object: permission.permission.accessObject.accessObject,
+      action: permission.permission.action.action,
     }));
   }
 
   async getByUserId(userId: number) {
-    const roles = await this.rolesService.getByUserId(userId);
-    return this.getByRoles(roles);
+    const user = await this.usersService.getById(userId);
+
+    if (!user) {
+      throw new NotFoundException();
+    }
+
+    const permissions = await this.prisma.rolesOnPermissions.findMany({
+      distinct: ["permissionId"],
+      select: {
+        role: {
+          select: {
+            role: true,
+          },
+        },
+        permission: {
+          select: {
+            accessObject: {
+              select: {
+                accessObject: true,
+              },
+            },
+            action: {
+              select: {
+                action: true,
+              },
+            },
+          },
+        },
+      },
+      where: {
+        role: {
+          users: {
+            some: {
+              userId,
+            },
+          },
+        },
+      },
+    });
+
+    return permissions.map((permission) => {
+      if (permission.role.role === RoleEnum.Teacher) {
+        return {
+          action: permission.permission.action.action,
+          object: permission.permission.accessObject.accessObject,
+          conditions: { userId },
+        };
+      }
+
+      return {
+        action: permission.permission.action.action,
+        object: permission.permission.accessObject.accessObject,
+      };
+    });
   }
 }

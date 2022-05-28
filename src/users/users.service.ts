@@ -8,14 +8,14 @@ import { GetUsersRolesDto } from "./dto/get-users-roles.dto";
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(dto: CreateUserDto) {
     return this.prisma.user.create({
-      data: createUserDto,
+      data: dto,
     });
   }
 
-  async getWithRoles(getUsersRolesDto: GetUsersRolesDto) {
-    const { login, roles, skip, take, name } = getUsersRolesDto;
+  async getWithRoles(dto: GetUsersRolesDto) {
+    const { login, roles, skip, take, name } = dto;
     const where = {} as Prisma.UserWhereInput;
 
     if (login) {

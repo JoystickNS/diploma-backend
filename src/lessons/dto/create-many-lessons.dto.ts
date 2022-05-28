@@ -1,10 +1,10 @@
 import { Type } from "class-transformer";
 import { IsDefined, ValidateNested } from "class-validator";
-import { UpdateLessonDto } from "./update-lesson.dto";
+import { CreateLessonDto } from "./create-lesson.dto";
 
-export class UpdateManyLessonsDto {
+export class CreateManyLessonsDto {
   @IsDefined()
   @ValidateNested({ each: true })
-  @Type(() => UpdateLessonDto)
-  items: UpdateLessonDto[];
+  @Type(() => CreateLessonDto)
+  items: CreateLessonDto[];
 }

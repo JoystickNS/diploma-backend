@@ -7,14 +7,14 @@ import { UserOnRoleDto } from "./dto/user-on-role.dto";
 export class UsersOnRolesService {
   constructor(private prisma: PrismaService) {}
 
-  async addByUserId(userOnRoleDto: UserOnRoleDto) {
+  async addByUserId(dto: UserOnRoleDto) {
     return this.prisma.usersOnRoles.create({
-      data: userOnRoleDto,
+      data: dto,
     });
   }
 
-  async deleteByUserId(userOnRoleDto: UserOnRoleDto) {
-    const { roleId, userId } = userOnRoleDto;
+  async deleteByUserId(dto: UserOnRoleDto) {
+    const { roleId, userId } = dto;
     const record = await this.prisma.usersOnRoles.findUnique({
       where: {
         userId_roleId: {

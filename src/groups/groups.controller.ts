@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, NotFoundException } from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { GroupsService } from "./groups.service";
 
@@ -9,6 +9,12 @@ export class GroupsController {
 
   @Get()
   async getAll() {
-    return this.groupsService.getAll();
+    const groups = await this.groupsService.getAll();
+
+    if (!groups) {
+      throw new NotFoundException();
+    }
+
+    return groups;
   }
 }

@@ -1,14 +1,15 @@
 import {
+  BadRequestException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import * as moment from "moment";
 import { ExceptionMessages } from "../constants/exception-messages";
+import { LECTURE, PRACTICE, LABORATORY } from "../constants/lessons";
 import { ILessonTopic } from "../interfaces/ILessonTopic";
 import { PrismaService } from "../prisma/prisma.service";
-import { SubgroupsService } from "../subgroups/subgroups.service";
+import { StudentsService } from "../students/students.service";
 import { calcSemester } from "../utils/utils";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { GetJournalListDto } from "./dto/get-journal-umk.dto";
@@ -16,15 +17,15 @@ import { GetJournalListDto } from "./dto/get-journal-umk.dto";
 @Injectable()
 export class JournalsService {
   constructor(
-    private prisma: PrismaService,
-    private subgroupsService: SubgroupsService
+    private readonly prisma: PrismaService,
+    private readonly studentsService: StudentsService
   ) {}
 
-  async create(userId: number, createJournalDto: CreateJournalDto) {
+  async create(userId: number, dto: CreateJournalDto) {
     const {
       control,
       discipline,
-      groups,
+      group,
       laboratoryHours,
       lectureHours,
       practiceHours,
@@ -36,7 +37,7 @@ export class JournalsService {
       pointsForFour,
       pointsForThree,
       practiceTopics,
-    } = createJournalDto;
+    } = dto;
 
     await this.prisma.$transaction(async (prisma) => {
       const journal = await prisma.journal.create({
@@ -60,13 +61,14 @@ export class JournalsService {
           lectureHours,
           practiceHours,
           maximumPoints,
+          attestations: {
+            create: {},
+          },
         },
       });
 
       if (!journal) {
-        throw new InternalServerErrorException(
-          ExceptionMessages.InternalServer
-        );
+        throw new BadRequestException(ExceptionMessages.BadRequest);
       }
 
       if (pointsForThree) {
@@ -105,115 +107,88 @@ export class JournalsService {
             ],
           })
           .catch(() => {
-            throw new InternalServerErrorException(
-              ExceptionMessages.InternalServer
-            );
+            throw new BadRequestException(ExceptionMessages.BadRequest);
           });
       }
 
-      if (lectureTopics.length > 0) {
-        await this.createLessonTopicsAndLessons(
-          "Лекция",
-          Math.ceil(lectureHours / 2),
-          lectureTopics,
-          journal.id,
-          prisma
-        );
-      }
+      await this.createLessonTopics(LECTURE, lectureTopics, journal.id, prisma);
 
-      if (practiceTopics.length > 0) {
-        await this.createLessonTopicsAndLessons(
-          "Практика",
-          Math.ceil(practiceHours / 2),
-          practiceTopics,
-          journal.id,
-          prisma
-        );
-      }
-
-      if (laboratoryTopics.length > 0) {
-        await this.createLessonTopicsAndLessons(
-          "Лабораторная",
-          Math.ceil(laboratoryHours / 2),
-          laboratoryTopics,
-          journal.id,
-          prisma
-        );
-      }
-
-      await Promise.all(
-        groups.map(async (group) => {
-          const subgroup = await prisma.subgroup.create({
-            data: {
-              group: {
-                connect: {
-                  name: group,
-                },
-              },
-              subgroupNumber: {
-                connect: {
-                  value: 1,
-                },
-              },
-            },
-          });
-
-          if (!subgroup) {
-            throw new InternalServerErrorException(
-              ExceptionMessages.InternalServer
-            );
-          }
-
-          const students = await prisma.student.findMany({
-            where: {
-              group: {
-                name: group,
-              },
-            },
-          });
-
-          if (!students) {
-            throw new NotFoundException(ExceptionMessages.StudentsNotFound);
-          }
-
-          await prisma.studentsOnSubgroups
-            .createMany({
-              data: [
-                ...students.map((student) => ({
-                  studentId: student.id,
-                  subgroupId: subgroup.id,
-                })),
-              ],
-            })
-            .catch(() => {
-              throw new InternalServerErrorException(
-                ExceptionMessages.InternalServer
-              );
-            });
-
-          await prisma.subgroupsOnJournals
-            .create({
-              data: {
-                journalId: journal.id,
-                subgroupId: subgroup.id,
-              },
-            })
-            .catch(() => {
-              throw new InternalServerErrorException(
-                ExceptionMessages.InternalServer
-              );
-            });
-        })
+      await this.createLessonTopics(
+        PRACTICE,
+        practiceTopics,
+        journal.id,
+        prisma
       );
+
+      await this.createLessonTopics(
+        LABORATORY,
+        laboratoryTopics,
+        journal.id,
+        prisma
+      );
+
+      const subgroup = await prisma.subgroup.create({
+        data: {
+          group: {
+            connect: {
+              name: group,
+            },
+          },
+          subgroupNumber: {
+            connectOrCreate: {
+              create: {
+                value: 1,
+              },
+              where: {
+                value: 1,
+              },
+            },
+          },
+        },
+      });
+
+      if (!subgroup) {
+        throw new BadRequestException(ExceptionMessages.BadRequest);
+      }
+
+      const students = await this.studentsService.get({ group });
+
+      if (!students) {
+        throw new NotFoundException(ExceptionMessages.StudentsNotFound);
+      }
+
+      await prisma.studentsOnSubgroups
+        .createMany({
+          data: [
+            ...students.map((student) => ({
+              studentId: student.id,
+              subgroupId: subgroup.id,
+            })),
+          ],
+        })
+        .catch(() => {
+          throw new BadRequestException(ExceptionMessages.BadRequest);
+        });
+
+      await prisma.subgroupsOnJournals
+        .create({
+          data: {
+            journalId: journal.id,
+            subgroupId: subgroup.id,
+          },
+        })
+        .catch(() => {
+          throw new BadRequestException(ExceptionMessages.BadRequest);
+        });
     });
   }
 
-  async getAllList(getJournalListDto?: GetJournalListDto) {
+  async getAllList(dto?: GetJournalListDto) {
     const {
       deleted = undefined,
       discipline = undefined,
       userId = undefined,
-    } = getJournalListDto;
+    } = dto;
     const journals = await this.prisma.journal.findMany({
       select: {
         id: true,
@@ -255,27 +230,24 @@ export class JournalsService {
     });
 
     return journals.map((journal) => {
-      const groupsWithoutDuplicates =
-        this.subgroupsService.getGroupsWithoutDuplicates(journal.subgroups);
-
       return {
         id: journal.id,
         discipline: journal.discipline.name,
-        groups: groupsWithoutDuplicates.map((group) => group.name),
+        group: journal.subgroups[0].subgroup.group.name,
         user: {
           firstName: journal.user.firstName,
           lastName: journal.user.lastName,
           middleName: journal.user.middleName,
         },
         semester: calcSemester(
-          groupsWithoutDuplicates[0].startYear,
+          journal.subgroups[0].subgroup.group.startYear,
           moment(journal.createdAt)
         ),
       };
     });
   }
 
-  async getJournalUmkInfoById(journalId: number) {
+  async getUmkInfoById(journalId: number) {
     const journalUmkInfo = await this.prisma.journal.findUnique({
       select: {
         id: true,
@@ -306,11 +278,18 @@ export class JournalsService {
             maximumPoints: true,
           },
         },
-        lessonTopics: {
+        lessons: {
           select: {
-            id: true,
-            name: true,
-            lessonType: true,
+            lessonTopic: {
+              select: {
+                name: true,
+                lessonType: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -323,30 +302,29 @@ export class JournalsService {
       throw new NotFoundException();
     }
 
-    const attestations = journalUmkInfo.attestations.map((attestation) => ({
-      id: attestation.id,
-      workType: attestation.workType.name,
-      workTopic: attestation.workTopic,
-      maximumPoints: attestation.maximumPoints,
-    }));
+    const attestations = journalUmkInfo.attestations
+      .filter((attestation) => attestation.workType)
+      .map((attestation) => ({
+        id: attestation.id,
+        workType: attestation.workType.name,
+        workTopic: attestation.workTopic,
+        maximumPoints: attestation.maximumPoints,
+      }));
 
-    const lectureTopics = journalUmkInfo.lessonTopics
-      .filter((lessonTopic) => lessonTopic.lessonType.name === "Лекция")
-      .map((lessonTopic) => ({
-        id: lessonTopic.id,
-        name: lessonTopic.name,
+    const lectureTopics = journalUmkInfo.lessons
+      .filter((lesson) => lesson.lessonTopic.lessonType.name === LECTURE)
+      .map((lesson) => ({
+        name: lesson.lessonTopic.name,
       }));
-    const practiceTopics = journalUmkInfo.lessonTopics
-      .filter((lessonTopic) => lessonTopic.lessonType.name === "Практика")
-      .map((practiceTopic) => ({
-        id: practiceTopic.id,
-        name: practiceTopic.name,
+    const practiceTopics = journalUmkInfo.lessons
+      .filter((lesson) => lesson.lessonTopic.lessonType.name === PRACTICE)
+      .map((lesson) => ({
+        name: lesson.lessonTopic.name,
       }));
-    const laboratoryTopics = journalUmkInfo.lessonTopics
-      .filter((lessonTopic) => lessonTopic.lessonType.name === "Лабораторная")
-      .map((laboratoryTopic) => ({
-        id: laboratoryTopic.id,
-        name: laboratoryTopic.name,
+    const laboratoryTopics = journalUmkInfo.lessons
+      .filter((lesson) => lesson.lessonTopic.lessonType.name === LABORATORY)
+      .map((lesson) => ({
+        name: lesson.lessonTopic.name,
       }));
 
     const pointsForThree = journalUmkInfo.grades.find(
@@ -379,14 +357,17 @@ export class JournalsService {
   async getJournalFullInfo(journalId: number) {
     const journalFullInfo = await this.prisma.journal.findUnique({
       select: {
+        id: true,
         createdAt: true,
         control: {
           select: {
+            id: true,
             name: true,
           },
         },
         discipline: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -398,6 +379,7 @@ export class JournalsService {
           select: {
             grade: {
               select: {
+                id: true,
                 value: true,
               },
             },
@@ -407,15 +389,43 @@ export class JournalsService {
         lessons: {
           select: {
             id: true,
+            conducted: true,
             date: true,
             lessonTopic: {
               select: {
+                id: true,
                 name: true,
                 lessonType: {
                   select: {
+                    id: true,
                     name: true,
                   },
                 },
+              },
+            },
+            subgroups: {
+              select: {
+                subgroup: {
+                  select: {
+                    id: true,
+                    subgroupNumber: true,
+                  },
+                },
+              },
+            },
+            points: {
+              select: {
+                id: true,
+                annotation: true,
+                numberOfPoints: true,
+                studentId: true,
+              },
+            },
+            visits: {
+              select: {
+                id: true,
+                isAbsent: true,
+                studentId: true,
               },
             },
           },
@@ -423,22 +433,44 @@ export class JournalsService {
             date: "asc",
           },
         },
+        lessonTopics: {
+          select: {
+            id: true,
+            lessonType: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            name: true,
+          },
+        },
         attestations: {
           select: {
             id: true,
             workType: {
               select: {
+                id: true,
                 name: true,
               },
             },
             workTopic: true,
             maximumPoints: true,
+            students: {
+              select: {
+                credited: true,
+                pointsOrGrade: true,
+                studentId: true,
+              },
+            },
           },
         },
         subgroups: {
           select: {
             subgroup: {
               select: {
+                id: true,
+                subgroupNumber: true,
                 group: {
                   select: {
                     id: true,
@@ -446,25 +478,27 @@ export class JournalsService {
                     startYear: true,
                   },
                 },
-                students: true,
-              },
-            },
-          },
-        },
-        lessonTopics: {
-          select: {
-            id: true,
-            lessonType: {
-              select: {
-                name: true,
-                lessonTopics: {
+                students: {
                   select: {
-                    name: true,
+                    student: {
+                      select: {
+                        id: true,
+                        firstName: true,
+                        middleName: true,
+                        lastName: true,
+                      },
+                    },
                   },
                 },
               },
             },
-            name: true,
+          },
+          orderBy: {
+            subgroup: {
+              subgroupNumber: {
+                value: "asc",
+              },
+            },
           },
         },
       },
@@ -477,64 +511,137 @@ export class JournalsService {
       throw new NotFoundException();
     }
 
-    const groupsWithoutDuplicates =
-      this.subgroupsService.getGroupsWithoutDuplicates(
-        journalFullInfo.subgroups
-      );
+    const students = [];
+
+    journalFullInfo.subgroups.forEach((subgroup) =>
+      subgroup.subgroup.students.forEach((student) => {
+        students.push({
+          ...student.student,
+          subgroup: {
+            id: subgroup.subgroup.id,
+            number: {
+              id: subgroup.subgroup.subgroupNumber.id,
+              value: subgroup.subgroup.subgroupNumber.value,
+            },
+          },
+        });
+      })
+    );
+
+    students.sort((a: any, b: any) => {
+      if (a.lastName === b.lastName) {
+        if (a.firstName === b.firstName) {
+          if (a.middleName > b.middleName) {
+            return 1;
+          } else {
+            return 1;
+          }
+        } else if (a.firstName > b.firstName) {
+          return 1;
+        } else {
+          return -1;
+        }
+      } else if (a.lastName > b.lastName) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
 
     return {
-      discipline: journalFullInfo.discipline.name,
-      groups: groupsWithoutDuplicates.map((group) => group.name),
+      id: journalFullInfo.id,
+      discipline: {
+        id: journalFullInfo.discipline.id,
+        name: journalFullInfo.discipline.name,
+      },
+      group: {
+        id: journalFullInfo.subgroups[0].subgroup.group.id,
+        name: journalFullInfo.subgroups[0].subgroup.group.name,
+      },
+      subgroups: journalFullInfo.subgroups.map((subgroup) => ({
+        id: subgroup.subgroup.id,
+        number: {
+          id: subgroup.subgroup.subgroupNumber.id,
+          value: subgroup.subgroup.subgroupNumber.value,
+        },
+      })),
       semester: calcSemester(
-        groupsWithoutDuplicates[0].startYear,
+        journalFullInfo.subgroups[0].subgroup.group.startYear,
         moment(journalFullInfo.createdAt)
       ),
-      control: journalFullInfo.control.name,
+      control: {
+        id: journalFullInfo.control.id,
+        name: journalFullInfo.control.name,
+      },
       lectureHours: journalFullInfo.lectureHours,
       practiceHours: journalFullInfo.practiceHours,
       laboratoryHours: journalFullInfo.laboratoryHours,
       maximumPoints: journalFullInfo.maximumPoints,
       grades: journalFullInfo.grades.map((grade) => ({
+        id: grade.grade.id,
         value: grade.grade.value,
         minimumPoints: grade.minimumPoints,
       })),
       attestations: journalFullInfo.attestations.map((attestation) => ({
         id: attestation.id,
-        workType: attestation.workType.name,
-        workTopic: attestation.workTopic,
-        maximumPoints: attestation.maximumPoints,
+        workType: attestation.workType
+          ? {
+              id: attestation.workType.id,
+              name: attestation.workType.name,
+            }
+          : null,
+        workTopic: attestation?.workTopic,
+        maximumPoints: attestation?.maximumPoints,
+        students: attestation.students.map((student) => ({
+          ...student,
+        })),
       })),
       lessons: journalFullInfo.lessons.map((lesson) => ({
         id: lesson.id,
+        conducted: lesson.conducted,
         date: lesson.date,
-        topic: lesson.lessonTopic.name,
-        type: lesson.lessonTopic.lessonType.name,
+        topic: lesson.lessonTopic
+          ? {
+              id: lesson.lessonTopic.id,
+              name: lesson.lessonTopic.name,
+              type: lesson.lessonTopic.lessonType.name,
+            }
+          : null,
+        subgroups: lesson.subgroups.map((subgroup) => ({
+          id: subgroup.subgroup.id,
+          number: {
+            id: subgroup.subgroup.subgroupNumber.id,
+            value: subgroup.subgroup.subgroupNumber.value,
+          },
+        })),
+        points: lesson.points,
+        visits: lesson.visits,
       })),
-      // lectureTopics: journalFullInfo.lessonTopics
-      //   .filter((lessonTopic) => lessonTopic.lessonType.name === "Лекция")
-      //   .map((lessonTopic) => ({
-      //     id: lessonTopic.id,
-      //     name: lessonTopic.name,
-      //   })),
-      // practiceTopics: journalFullInfo.lessonTopics
-      //   .filter((lessonTopic) => lessonTopic.lessonType.name === "Практика")
-      //   .map((lessonTopic) => ({
-      //     id: lessonTopic.id,
-      //     name: lessonTopic.name,
-      //   })),
-      // laboratoryTopics: journalFullInfo.lessonTopics
-      //   .filter((lessonTopic) => lessonTopic.lessonType.name === "Лабораторная")
-      //   .map((lessonTopic) => ({
-      //     id: lessonTopic.id,
-      //     name: lessonTopic.name,
-      //   })),
+      students,
+      lectureTopics: journalFullInfo.lessonTopics
+        .filter((lessonTopic) => lessonTopic.lessonType.name === LECTURE)
+        .map((lessonTopic) => ({
+          id: lessonTopic.id,
+          name: lessonTopic.name,
+        })),
+      practiceTopics: journalFullInfo.lessonTopics
+        .filter((lessonTopic) => lessonTopic.lessonType.name === PRACTICE)
+        .map((lessonTopic) => ({
+          id: lessonTopic.id,
+          name: lessonTopic.name,
+        })),
+      laboratoryTopics: journalFullInfo.lessonTopics
+        .filter((lessonTopic) => lessonTopic.lessonType.name === LABORATORY)
+        .map((lessonTopic) => ({
+          id: lessonTopic.id,
+          name: lessonTopic.name,
+        })),
     };
   }
 
-  private async createLessonTopicsAndLessons(
-    lessonType: string,
-    lessonsNumber: number,
-    lessonTopics: ILessonTopic[],
+  private async createLessonTopics(
+    type: string,
+    topics: ILessonTopic[],
     journalId: number,
     prisma: Omit<
       PrismaClient,
@@ -544,63 +651,81 @@ export class JournalsService {
     const lessonTypeId = (
       await prisma.lessonType.findUnique({
         where: {
-          name: lessonType,
+          name: type,
         },
       })
     ).id;
 
-    if (!lessonTypeId) {
-      throw new NotFoundException(ExceptionMessages.LessonTypeNotFound);
-    }
-
-    await Promise.all(
-      lessonTopics.map((lessonTopic) => {
-        prisma.lessonTopic.create({
-          data: {
-            name: lessonTopic.name,
-            journalId,
-            lessonTypeId,
-            lessons: {
-              create: {
-                journalId,
-              },
-            },
-          },
-        });
+    return prisma.lessonTopic
+      .createMany({
+        data: topics.map((topic) => ({
+          name: topic.name,
+          journalId,
+          lessonTypeId,
+        })),
       })
-    ).catch(() => {
-      throw new InternalServerErrorException(ExceptionMessages.InternalServer);
-    });
-
-    async function temp() {
-      const promises = [];
-
-      for (let i = lessonTopics.length; i <= lessonsNumber; i++) {
-        promises.push(
-          prisma.lessonTopic.create({
-            data: {
-              name: "",
-              journalId,
-              lessonTypeId,
-              lessons: {
-                create: {
-                  journalId,
-                },
-              },
-            },
-          })
-        );
-      }
-
-      return Promise.all(promises).catch(() => {
-        throw new InternalServerErrorException(
-          ExceptionMessages.InternalServer
-        );
+      .catch(() => {
+        throw new BadRequestException(ExceptionMessages.BadRequest);
       });
-    }
-
-    temp.call(this);
   }
+
+  // private async createLessons(
+  //   type: string,
+  //   lessonsCount: number,
+  //   topics: ILessonTopic[],
+  //   journalId: number,
+  //   prisma: Omit<
+  //     PrismaClient,
+  //     "$connect" | "$disconnect" | "$on" | "$transaction" | "$use"
+  //   >
+  // ) {
+  //   const lessonTypeId = (
+  //     await prisma.lessonType.findUnique({
+  //       where: {
+  //         name: type,
+  //       },
+  //     })
+  //   ).id;
+
+  //   if (!lessonTypeId) {
+  //     throw new NotFoundException(ExceptionMessages.LessonTypeNotFound);
+  //   }
+
+  //   await Promise.all(
+  //     topics.map((topic) => {
+  //       prisma.lesson.create({
+  //         data: {
+  //           journalId,
+  //           lessonTypeId,
+  //           topic: topic.name,
+  //         },
+  //       });
+  //     })
+  //   ).catch(() => {
+  //     throw new BadRequestException(ExceptionMessages.BadRequest);
+  //   });
+
+  //   async function temp() {
+  //     const promises = [];
+
+  //     for (let i = topics.length; i <= lessonsCount; i++) {
+  //       promises.push(
+  //         prisma.lesson.create({
+  //           data: {
+  //             journalId,
+  //             lessonTypeId,
+  //           },
+  //         })
+  //       );
+  //     }
+
+  //     return Promise.all(promises).catch(() => {
+  //       throw new BadRequestException(ExceptionMessages.BadRequest);
+  //     });
+  //   }
+
+  //   temp.call(this);
+  // }
 
   private async createGrade(
     minimumPoints: number,
@@ -628,7 +753,7 @@ export class JournalsService {
     });
 
     if (!journalOnGrade) {
-      throw new InternalServerErrorException(ExceptionMessages.InternalServer);
+      throw new BadRequestException(ExceptionMessages.BadRequest);
     }
 
     return journalOnGrade;

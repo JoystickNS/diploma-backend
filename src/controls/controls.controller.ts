@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, NotFoundException } from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { ControlsService } from "./controls.service";
 
@@ -9,6 +9,12 @@ export class ControlsController {
 
   @Get()
   async getAll() {
-    return this.controlsService.getAll();
+    const controls = await this.controlsService.getAll();
+
+    if (controls.length === 0) {
+      throw new NotFoundException();
+    }
+
+    return controls;
   }
 }

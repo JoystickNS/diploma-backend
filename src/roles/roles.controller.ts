@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, NotFoundException } from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { RolesService } from "./roles.service";
 
@@ -9,6 +9,12 @@ export class RolesController {
 
   @Get()
   async getAll() {
-    return this.rolesService.getAll();
+    const roles = await this.rolesService.getAll();
+
+    if (!roles) {
+      throw new NotFoundException();
+    }
+
+    return roles;
   }
 }

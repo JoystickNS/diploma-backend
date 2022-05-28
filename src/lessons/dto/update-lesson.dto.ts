@@ -1,10 +1,21 @@
-import { PickType } from "@nestjs/mapped-types";
-import { IsInt } from "class-validator";
-import { CreateLessonDto } from "./create-lesson.dto";
+import {
+  IsDate,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
 
-export class UpdateLessonDto extends PickType(CreateLessonDto, [
-  "date",
-] as const) {
+export class UpdateLessonDto {
   @IsInt()
   id: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  topic?: string;
+
+  @IsOptional()
+  @IsDate()
+  date?: Date;
 }

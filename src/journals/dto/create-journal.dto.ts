@@ -1,6 +1,5 @@
 import { Type } from "class-transformer";
 import {
-  IsArray,
   IsInt,
   IsOptional,
   Min,
@@ -13,9 +12,9 @@ import { CreateAttestationDto } from "../../dto/create-attestation.dto";
 import { CreateLessonTopicDto } from "../../dto/create-lesson-topic.dto";
 
 export class CreateJournalDto {
-  @IsArray()
-  @Type(() => String)
-  readonly groups: string[];
+  @IsString()
+  @MaxLength(50)
+  readonly group: string;
 
   @IsString()
   @MaxLength(150)

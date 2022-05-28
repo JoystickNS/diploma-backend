@@ -9,12 +9,12 @@ export class UsersOnRolesController {
   constructor(private readonly userOnRoleService: UsersOnRolesService) {}
 
   @Post()
-  async addByUserId(@Body() userOnRoleDto: UserOnRoleDto) {
-    return this.userOnRoleService.addByUserId(userOnRoleDto);
+  async addByUserId(@Body() dto: UserOnRoleDto) {
+    return this.userOnRoleService.addByUserId(dto);
   }
 
   @Delete()
-  async deleteByUserId(@Body() userOnRoleDto: UserOnRoleDto) {
-    return this.userOnRoleService.deleteByUserId(userOnRoleDto);
+  async deleteByUserId(@Body() dto: UserOnRoleDto) {
+    return this.userOnRoleService.deleteByUserId(dto);
   }
 }

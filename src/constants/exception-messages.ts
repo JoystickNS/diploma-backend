@@ -5,7 +5,7 @@ export const ExceptionMessages = {
   LoginAlreadyUsed: (login: string) =>
     `Пользователь с логином ${login} уже существует`,
   RoleNotFound: "У пользователя не найдена такая роль",
-  InternalServer: "Произошла ошибка внутреннего сервера",
+  BadRequest: "Произошла какая-то ошибка",
   StudentsNotFound: "Студенты не найдены",
   LessonTypeNotFound: "Не найден тип занятия",
 };

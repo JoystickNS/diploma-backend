@@ -25,12 +25,8 @@ export class AuthService {
     private usersService: UsersService
   ) {}
 
-  async registration(
-    req: IAppRequest,
-    res: Response,
-    createUserDto: CreateUserDto
-  ) {
-    const { login, password } = createUserDto;
+  async registration(req: IAppRequest, res: Response, dto: CreateUserDto) {
+    const { login, password } = dto;
     const user = await this.usersService.getByLogin(login);
 
     if (user) {
@@ -40,7 +36,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 7);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...newUser } = await this.usersService.create({
-      ...createUserDto,
+      ...dto,
       password: hashedPassword,
     });
     const payload = new JwtPayload(newUser);
@@ -66,8 +62,8 @@ export class AuthService {
     };
   }
 
-  async login(req: IAppRequest, res: Response, loginDto: LoginDto) {
-    const { rememberMe } = loginDto;
+  async login(req: IAppRequest, res: Response, dto: LoginDto) {
+    const { rememberMe } = dto;
     const userAgent = req.headers["user-agent"];
     const payload = req.user;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -134,6 +130,7 @@ export class AuthService {
   }
 
   async refresh(req: IAppRequest, res: Response) {
+    console.log("refresh");
     const oldRefreshToken = req.cookies["refreshToken"];
 
     if (!oldRefreshToken) {

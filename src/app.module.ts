@@ -17,9 +17,11 @@ import { DisciplinesModule } from "./disciplines/disciplines.module";
 import { ControlsModule } from "./controls/controls.module";
 import { GroupsModule } from "./groups/groups.module";
 import { WorkTypesModule } from "./work-types/work-types.module";
-import { SubgroupsModule } from "./subgroups/subgroups.module";
 import { LessonsModule } from "./lessons/lessons.module";
 import { LessonTypesModule } from "./lesson-types/lesson-types.module";
+import { AttestationsModule } from "./attestations/attestations.module";
+import { StudentsModule } from "./students/students.module";
+import { SubgroupsModule } from "./subgroups/subgroups.module";
 
 @Module({
   imports: [
@@ -41,9 +43,11 @@ import { LessonTypesModule } from "./lesson-types/lesson-types.module";
     ControlsModule,
     GroupsModule,
     WorkTypesModule,
-    SubgroupsModule,
     LessonsModule,
     LessonTypesModule,
+    AttestationsModule,
+    StudentsModule,
+    SubgroupsModule,
   ],
   providers: [
     {

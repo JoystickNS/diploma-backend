@@ -31,31 +31,32 @@ export class TokensService {
     };
   }
 
-  async create(createTokenDto: CreateTokenDto) {
+  async create(dto: CreateTokenDto) {
     return this.prisma.token.create({
-      data: createTokenDto,
+      data: dto,
     });
   }
 
-  async update(refreshToken: string, updateTokenDto: UpdateTokenDto) {
+  async update(refreshToken: string, dto: UpdateTokenDto) {
     return this.prisma.token.update({
       where: {
         refreshToken,
       },
       data: {
-        ...updateTokenDto,
+        ...dto,
       },
     });
   }
 
-  async updateFirstByUserId(userId: number, updateTokenDto: UpdateTokenDto) {
+  async updateFirstByUserId(userId: number, dto: UpdateTokenDto) {
+    console.log("updateFirstByUserId");
     const firstToken = await this.prisma.token.findFirst({
       where: {
         userId,
       },
     });
 
-    return this.update(firstToken.refreshToken, updateTokenDto);
+    return this.update(firstToken.refreshToken, dto);
   }
 
   async delete(refreshToken: string) {
