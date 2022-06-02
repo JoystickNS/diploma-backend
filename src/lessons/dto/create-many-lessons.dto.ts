@@ -6,5 +6,5 @@ export class CreateManyLessonsDto {
   @IsDefined()
   @ValidateNested({ each: true })
   @Type(() => CreateLessonDto)
-  items: CreateLessonDto[];
+  readonly items: CreateLessonDto[];
 }

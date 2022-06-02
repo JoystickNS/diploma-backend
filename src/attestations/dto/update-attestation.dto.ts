@@ -1,11 +1,8 @@
-import { IsInt, IsOptional, IsString } from "class-validator";
+import { PartialType } from "@nestjs/mapped-types";
+import { IsInt } from "class-validator";
+import { CreateAttestationDto } from "./create-attestation.dto";
 
-export class UpdateAttestationDto {
-  @IsOptional()
-  @IsString()
-  workTopic?: string;
-
-  @IsOptional()
+export class UpdateAttestationDto extends PartialType(CreateAttestationDto) {
   @IsInt()
-  maximumPoints?: number;
+  attestationId: number;
 }

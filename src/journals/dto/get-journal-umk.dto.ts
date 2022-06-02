@@ -1,15 +1,15 @@
-import { IsBoolean, IsInt, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsInt, IsOptional } from "class-validator";
 
 export class GetJournalListDto {
   @IsOptional()
   @IsInt()
-  userId?: number;
+  readonly userId?: number;
 
   @IsOptional()
   @IsBoolean()
-  deleted?: boolean;
+  readonly deleted?: boolean;
 
   @IsOptional()
-  @IsString()
-  discipline?: string;
+  @IsInt()
+  readonly disciplineId?: number;
 }

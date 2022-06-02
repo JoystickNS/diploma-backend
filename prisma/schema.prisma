@@ -290,6 +290,8 @@ model Lesson {
   journalId     Int          @map("journal_id") @db.UnsignedInt
   lessonTopic   LessonTopic? @relation(fields: [lessonTopicId], references: [id], onDelete: Cascade)
   lessonTopicId Int?         @map("lesson_topic_id") @db.UnsignedInt
+  lessonType    LessonType   @relation(fields: [lessonTypeId], references: [id], onDelete: Cascade)
+  lessonTypeId  Int          @map("lesson_type_id") @db.UnsignedTinyInt
 }
 
 model LessonTopic {
@@ -303,6 +305,7 @@ model LessonTopic {
   lessonType   LessonType @relation(fields: [lessonTypeId], references: [id], onDelete: Cascade)
   lessonTypeId Int        @map("lesson_type_id") @db.UnsignedTinyInt
 
+  @@unique([journalId, lessonTypeId, name])
   @@map("lesson_topic")
 }
 
@@ -320,15 +323,16 @@ model LessonType {
   id   Int    @id @default(autoincrement()) @db.UnsignedTinyInt
   name String @unique @db.VarChar(50)
 
+  lessons      Lesson[]
   lessonTopics LessonTopic[]
 
   @@map("lesson_type")
 }
 
 model Points {
-  id             Int    @id @default(autoincrement()) @db.UnsignedInt
-  annotation     String @db.VarChar(100)
-  numberOfPoints Int    @map("number_of_points") @db.UnsignedTinyInt
+  id             Int     @id @default(autoincrement()) @db.UnsignedInt
+  annotation     String? @db.VarChar(100)
+  numberOfPoints Int     @map("number_of_points") @db.UnsignedTinyInt
 
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId Int     @map("student_id") @db.UnsignedInt

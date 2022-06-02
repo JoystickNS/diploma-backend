@@ -3,8 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  Patch,
   Post,
-  Put,
   Req,
   Res,
   UseGuards,
@@ -46,7 +46,7 @@ export class AuthController {
     return this.authService.me(req.cookies["refreshToken"]);
   }
 
-  @Put("refresh")
+  @Patch("refresh")
   async refresh(
     @Req() req: IAppRequest,
     @Res({ passthrough: true }) res: Response

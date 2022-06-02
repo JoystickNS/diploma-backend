@@ -1,9 +1,12 @@
 import { IsInt, IsOptional, IsString, MaxLength, Min } from "class-validator";
 
 export class CreateAttestationDto {
-  @IsString()
-  @MaxLength(50)
-  readonly workType: string;
+  @IsInt()
+  readonly journalId: number;
+
+  @IsOptional()
+  @IsInt()
+  readonly workTypeId: number;
 
   @IsOptional()
   @IsString()

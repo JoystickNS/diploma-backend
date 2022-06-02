@@ -1,7 +1,6 @@
-import { IsString, MaxLength } from "class-validator";
+import { IsInt } from "class-validator";
 
 export class GetStudentsDto {
-  @IsString()
-  @MaxLength(50)
-  group: string;
+  @IsInt()
+  readonly groupId: number;
 }

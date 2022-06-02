@@ -1,24 +1,29 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { LECTURE } from "../constants/lessons";
+import { LessonsService } from "../lessons/lessons.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateJournalSubgroupDto } from "./dto/create-journal-subgroup.dto";
-import { UpdateManyStudentsSubgroupsDto as UpdateManyStudentsSubgroupsDto } from "./dto/update-many-students-subgroup.dto";
+import { UpdateManyStudentsSubgroupsDto } from "./dto/update-many-students-subgroup.dto";
 import { UpdateStudentSubgroupDto } from "./dto/update-student-subgroup.dto copy";
 
 @Injectable()
 export class SubgroupsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly lessonsService: LessonsService
+  ) {}
 
-  async createJournalSubgroup(dto: CreateJournalSubgroupDto) {
-    const { group, journalId, subgroup } = dto;
+  async create(dto: CreateJournalSubgroupDto) {
+    const { groupId, journalId, subgroup } = dto;
+    let result;
 
-    try {
-      const result = await this.prisma.subgroup.create({
+    await this.prisma.$transaction(async (prisma) => {
+      result = await prisma.subgroup.create({
         data: {
           group: {
             connect: {
-              name: group,
+              id: groupId,
             },
           },
           subgroupNumber: {
@@ -43,23 +48,38 @@ export class SubgroupsService {
         },
       });
 
-      return {
-        id: result.id,
-        number: {
-          id: result.subgroupNumber.id,
-          value: result.subgroupNumber.value,
+      const lessons = await prisma.lesson.findMany({
+        where: {
+          journalId,
+          lessonType: {
+            name: LECTURE,
+          },
         },
-      };
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new BadRequestException();
-      }
+        select: {
+          id: true,
+        },
+      });
 
-      throw error;
-    }
+      await Promise.all(
+        lessons.map(
+          async (lesson) =>
+            await prisma.lessonsOnSubgroups.create({
+              data: {
+                lessonId: lesson.id,
+                subgroupId: result.id,
+              },
+            })
+        )
+      );
+    });
+
+    return {
+      id: result.id,
+      subgroupNumber: result.subgroupNumber,
+    };
   }
 
-  async updateStudentSubgroup(
+  async updateStudent(
     dto: UpdateStudentSubgroupDto,
     prisma?: Omit<
       PrismaClient,
@@ -68,8 +88,10 @@ export class SubgroupsService {
   ) {
     const { newSubgroupId, studentId, subgroupId } = dto;
     const prismaClient = prisma ? prisma : this.prisma;
-    try {
-      const result = await prismaClient.studentsOnSubgroups.update({
+    let result;
+
+    if (subgroupId) {
+      result = await prismaClient.studentsOnSubgroups.update({
         data: {
           subgroupId: newSubgroupId,
         },
@@ -89,34 +111,40 @@ export class SubgroupsService {
           },
         },
       });
-
-      return {
-        studentId,
-        subgroup: {
-          id: result.subgroup.id,
-          number: {
-            id: result.subgroup.subgroupNumber.id,
-            value: result.subgroup.subgroupNumber.value,
+    } else {
+      result = await prismaClient.studentsOnSubgroups.create({
+        data: {
+          studentId,
+          subgroupId: newSubgroupId,
+        },
+        select: {
+          studentId: true,
+          subgroup: {
+            select: {
+              id: true,
+              subgroupNumber: true,
+            },
           },
         },
-      };
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw error;
-      }
+      });
     }
+
+    return {
+      studentId,
+      subgroup: {
+        id: result.subgroup.id,
+        subgroupNumber: result.subgroup.subgroupNumber,
+      },
+    };
   }
 
-  async updateManyStudentsSubgroups(dto: UpdateManyStudentsSubgroupsDto) {
+  async updateManyStudents(dto: UpdateManyStudentsSubgroupsDto) {
     const result = [];
 
     await this.prisma.$transaction(async (prisma) => {
       await Promise.all(
         dto.items.map(async (studentSubgroup) => {
-          const temp = await this.updateStudentSubgroup(
-            studentSubgroup,
-            prisma
-          );
+          const temp = await this.updateStudent(studentSubgroup, prisma);
           result.push(temp);
         })
       );
@@ -125,33 +153,52 @@ export class SubgroupsService {
     return result;
   }
 
-  async deleteJournalSubgroup(subgroupId: number) {
-    const students = await this.prisma.studentsOnSubgroups.findMany({
-      where: {
-        subgroupId,
-      },
+  async delete(subgroupId: number) {
+    let result;
+
+    await this.prisma.$transaction(async (prisma) => {
+      const students = await prisma.studentsOnSubgroups.findMany({
+        where: {
+          subgroupId,
+        },
+      });
+
+      if (students.length > 0) {
+        throw new BadRequestException("В подгруппе не должно быть студентов");
+      }
+
+      const lessonsIds = await prisma.lesson.findMany({
+        where: {
+          subgroups: {
+            every: {
+              subgroupId,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const deletedLessonsIds: number[] = [];
+
+      await Promise.all(
+        lessonsIds.map(async (lessonId) => {
+          const temp = await this.lessonsService.delete(lessonId.id, prisma);
+          deletedLessonsIds.push(temp.id);
+        })
+      );
+
+      result = await prisma.subgroup.delete({
+        where: {
+          id: subgroupId,
+        },
+        select: {
+          id: true,
+        },
+      });
     });
 
-    if (students.length > 0) {
-      throw new BadRequestException();
-    }
-
-    const result = await this.prisma.subgroup.delete({
-      where: {
-        id: subgroupId,
-      },
-      select: {
-        id: true,
-        subgroupNumber: true,
-      },
-    });
-
-    return {
-      id: result.id,
-      number: {
-        id: result.subgroupNumber.id,
-        value: result.subgroupNumber.value,
-      },
-    };
+    return result;
   }
 }

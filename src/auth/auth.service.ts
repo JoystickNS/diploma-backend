@@ -114,10 +114,8 @@ export class AuthService {
     const token = await this.tokensService.getByRefreshToken(refreshToken);
 
     if (token) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...user } = await this.usersService.getById(
-        token.userId
-      );
+      const user = await this.usersService.getById(token.userId);
+      delete user.password;
       const permissions = await this.permissionsService.getByUserId(user.id);
 
       return {
@@ -130,7 +128,6 @@ export class AuthService {
   }
 
   async refresh(req: IAppRequest, res: Response) {
-    console.log("refresh");
     const oldRefreshToken = req.cookies["refreshToken"];
 
     if (!oldRefreshToken) {

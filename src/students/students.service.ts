@@ -7,13 +7,11 @@ export class StudentsService {
   constructor(private prisma: PrismaService) {}
 
   async get(dto: GetStudentsDto) {
-    const { group } = dto;
+    const { groupId } = dto;
 
     return this.prisma.studentsOnGroups.findMany({
       where: {
-        group: {
-          name: group,
-        },
+        groupId,
         dateOfDischarge: null,
       },
     });

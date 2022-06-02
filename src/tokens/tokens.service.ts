@@ -42,14 +42,11 @@ export class TokensService {
       where: {
         refreshToken,
       },
-      data: {
-        ...dto,
-      },
+      data: dto,
     });
   }
 
   async updateFirstByUserId(userId: number, dto: UpdateTokenDto) {
-    console.log("updateFirstByUserId");
     const firstToken = await this.prisma.token.findFirst({
       where: {
         userId,
@@ -86,6 +83,7 @@ export class TokensService {
     });
   }
 
+  // Каждый день удаляются сессионные токены
   @Cron(CronExpression.EVERY_WEEKDAY)
   private async deleteExpiredSessions() {
     let i = 0;
@@ -117,6 +115,7 @@ export class TokensService {
     }
   }
 
+  // Каждую неделю удаляются просроченные запомненные токены
   @Cron(CronExpression.EVERY_WEEK)
   private async deleteExpiredMemorizedTokens() {
     let i = 0;

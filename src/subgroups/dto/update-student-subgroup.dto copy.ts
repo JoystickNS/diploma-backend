@@ -1,12 +1,13 @@
-import { IsInt } from "class-validator";
+import { IsInt, IsOptional } from "class-validator";
 
 export class UpdateStudentSubgroupDto {
   @IsInt()
-  studentId: number;
+  readonly studentId: number;
+
+  @IsOptional()
+  @IsInt()
+  readonly subgroupId?: number;
 
   @IsInt()
-  subgroupId: number;
-
-  @IsInt()
-  newSubgroupId: number;
+  readonly newSubgroupId: number;
 }

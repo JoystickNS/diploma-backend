@@ -6,5 +6,5 @@ export class UpdateManyStudentsSubgroupsDto {
   @IsDefined()
   @ValidateNested({ each: true })
   @Type(() => UpdateStudentSubgroupDto)
-  items: UpdateStudentSubgroupDto[];
+  readonly items: UpdateStudentSubgroupDto[];
 }

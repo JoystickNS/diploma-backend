@@ -2,8 +2,8 @@ import { IsInt } from "class-validator";
 
 export class UserOnRoleDto {
   @IsInt()
-  userId: number;
+  readonly userId: number;
 
   @IsInt()
-  roleId: number;
+  readonly roleId: number;
 }

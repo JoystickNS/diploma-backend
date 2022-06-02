@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, NotFoundException } from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { WorkTypesService } from "./work-types.service";
 
@@ -9,6 +9,12 @@ export class WorkTypesController {
 
   @Get()
   async getAll() {
-    return this.workTypesService.getAll();
+    const workTypes = await this.workTypesService.getAll();
+
+    if (workTypes.length === 0) {
+      throw new NotFoundException();
+    }
+
+    return workTypes;
   }
 }

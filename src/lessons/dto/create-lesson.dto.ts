@@ -1,12 +1,20 @@
-import { IsDate, IsInt, IsOptional } from "class-validator";
+import { IsArray, IsDate, IsInt, IsOptional, IsString } from "class-validator";
 
 export class CreateLessonDto {
   @IsInt()
-  journalId: number;
+  readonly journalId: number;
 
   @IsInt()
-  subgroupId: number;
+  readonly lessonTypeId: number;
+
+  @IsOptional()
+  @IsString()
+  readonly lessonTopic?: string;
+
+  @IsArray()
+  @IsInt({ each: true })
+  readonly subgroupIds: number[];
 
   @IsDate()
-  date: Date;
+  readonly date: Date;
 }

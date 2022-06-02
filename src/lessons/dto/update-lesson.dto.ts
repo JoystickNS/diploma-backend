@@ -1,21 +1,8 @@
-import {
-  IsDate,
-  IsInt,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from "class-validator";
+import { PartialType } from "@nestjs/mapped-types";
+import { IsInt } from "class-validator";
+import { CreateLessonDto } from "./create-lesson.dto";
 
-export class UpdateLessonDto {
+export class UpdateLessonDto extends PartialType(CreateLessonDto) {
   @IsInt()
-  id: number;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  topic?: string;
-
-  @IsOptional()
-  @IsDate()
-  date?: Date;
+  readonly lessonId: number;
 }

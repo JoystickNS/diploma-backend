@@ -1,13 +1,12 @@
-import { IsInt, IsString, MaxLength } from "class-validator";
+import { IsInt } from "class-validator";
 
 export class CreateJournalSubgroupDto {
   @IsInt()
-  journalId: number;
-
-  @IsString()
-  @MaxLength(50)
-  group: string;
+  readonly journalId: number;
 
   @IsInt()
-  subgroup: number;
+  readonly groupId: number;
+
+  @IsInt()
+  readonly subgroup: number;
 }
