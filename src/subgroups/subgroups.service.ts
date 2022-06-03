@@ -4,6 +4,7 @@ import { LECTURE } from "../constants/lessons";
 import { LessonsService } from "../lessons/lessons.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateJournalSubgroupDto } from "./dto/create-journal-subgroup.dto";
+import { CreateStudentSubgroup } from "./dto/create-student-subgroup.dto";
 import { UpdateManyStudentsSubgroupsDto } from "./dto/update-many-students-subgroup.dto";
 import { UpdateStudentSubgroupDto } from "./dto/update-student-subgroup.dto copy";
 
@@ -77,6 +78,26 @@ export class SubgroupsService {
       id: result.id,
       subgroupNumber: result.subgroupNumber,
     };
+  }
+
+  async createSubgroupStudent(dto: CreateStudentSubgroup) {
+    return this.prisma.studentsOnSubgroups.create({
+      data: dto,
+      select: {
+        studentId: true,
+        subgroup: {
+          select: {
+            id: true,
+            subgroupNumber: {
+              select: {
+                id: true,
+                value: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   async updateStudent(

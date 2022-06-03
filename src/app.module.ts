@@ -22,6 +22,7 @@ import { LessonTypesModule } from "./lesson-types/lesson-types.module";
 import { AttestationsModule } from "./attestations/attestations.module";
 import { StudentsModule } from "./students/students.module";
 import { SubgroupsModule } from "./subgroups/subgroups.module";
+import { VisitsModule } from './visits/visits.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SubgroupsModule } from "./subgroups/subgroups.module";
     AttestationsModule,
     StudentsModule,
     SubgroupsModule,
+    VisitsModule,
   ],
   providers: [
     {

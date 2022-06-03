@@ -10,6 +10,7 @@ import {
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { CreateLessonDto } from "./dto/create-lesson.dto";
 import { CreateManyLessonsDto } from "./dto/create-many-lessons.dto";
+import { StartLessonDto } from "./dto/start-lesson.dto";
 import { UpdateLessonDto } from "./dto/update-lesson.dto";
 import { UpdateManyLessonsDto } from "./dto/update-many-lessons.dto";
 import { LessonsService } from "./lessons.service";
@@ -18,11 +19,6 @@ import { LessonsService } from "./lessons.service";
 @Controller("journals")
 export class LessonsController {
   constructor(private readonly lessonsService: LessonsService) {}
-
-  @Get(":journalId/lessons")
-  async get(@Param("journalId") journalId: number) {
-    return this.lessonsService.get({ journalId });
-  }
 
   @Post(":journalId/lessons")
   async create(@Body() dto: CreateLessonDto) {
@@ -34,14 +30,19 @@ export class LessonsController {
     return this.lessonsService.createMany(dto);
   }
 
-  @Patch(":journalId/lessons/:lessonId")
-  async update(@Body() dto: UpdateLessonDto) {
-    return this.lessonsService.update(dto);
+  @Post(":journalId/lessons/:lessonId")
+  async startLesson(@Body() dto: StartLessonDto) {
+    return this.lessonsService.startLesson(dto);
   }
 
   @Patch(":journalId/lessons/update-many")
   async updateMany(@Body() dto: UpdateManyLessonsDto) {
     return this.lessonsService.updateMany(dto);
+  }
+
+  @Patch(":journalId/lessons/:lessonId")
+  async update(@Body() dto: UpdateLessonDto) {
+    return this.lessonsService.update(dto);
   }
 
   @Delete(":journalId/lessons/:lessonId")

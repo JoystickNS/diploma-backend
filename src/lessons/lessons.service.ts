@@ -1,26 +1,16 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Visit } from "@prisma/client";
 import { LABORATORY, LECTURE, PRACTICE } from "../constants/lessons";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateLessonDto } from "./dto/create-lesson.dto";
 import { CreateManyLessonsDto } from "./dto/create-many-lessons.dto";
-import { GetLessonsDto } from "./dto/get-lessons.dto";
+import { StartLessonDto } from "./dto/start-lesson.dto";
 import { UpdateLessonDto } from "./dto/update-lesson.dto";
 import { UpdateManyLessonsDto } from "./dto/update-many-lessons.dto";
 
 @Injectable()
 export class LessonsService {
   constructor(private readonly prisma: PrismaService) {}
-
-  async get(dto: GetLessonsDto) {
-    const { journalId } = dto;
-
-    return this.prisma.lesson.findMany({
-      where: {
-        journalId: +journalId,
-      },
-    });
-  }
 
   async create(
     dto: CreateLessonDto,
@@ -221,6 +211,59 @@ export class LessonsService {
     });
 
     return result;
+  }
+
+  async startLesson(dto: StartLessonDto) {
+    const { lessonId, subgroupIds } = dto;
+    const result: Visit[] = [];
+
+    await this.prisma.$transaction(async (prisma) => {
+      await prisma.lesson.update({
+        data: {
+          conducted: true,
+        },
+        where: {
+          id: lessonId,
+        },
+      });
+
+      const students = await prisma.studentsOnSubgroups.findMany({
+        where: {
+          subgroupId: {
+            in: subgroupIds,
+          },
+        },
+        select: {
+          student: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      await Promise.all(
+        students.map(async (student) => {
+          const visit = await prisma.visit.create({
+            data: {
+              lessonId,
+              studentId: student.student.id,
+            },
+            select: {
+              isAbsent: true,
+              lessonId: true,
+              studentId: true,
+            },
+          });
+          result.push(visit);
+        })
+      );
+    });
+
+    return {
+      lessonId,
+      visits: result,
+    };
   }
 
   async update(

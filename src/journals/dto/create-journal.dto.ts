@@ -7,8 +7,8 @@ import {
   IsDefined,
   IsArray,
   IsString,
+  MaxLength,
 } from "class-validator";
-import { CreateAttestationDto } from "../../attestations/dto/create-attestation.dto";
 
 export class CreateJournalDto {
   @IsInt()
@@ -54,8 +54,8 @@ export class CreateJournalDto {
 
   @IsDefined()
   @ValidateNested({ each: true })
-  @Type(() => CreateAttestationDto)
-  readonly attestations: CreateAttestationDto[];
+  @Type(() => CreateAttestation)
+  readonly attestations: CreateAttestation[];
 
   @IsArray()
   @IsString({ each: true })
@@ -68,4 +68,20 @@ export class CreateJournalDto {
   @IsArray()
   @IsString({ each: true })
   readonly laboratoryTopics: string[];
+}
+
+class CreateAttestation {
+  @IsOptional()
+  @IsInt()
+  readonly workTypeId: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(250)
+  readonly workTopic?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  readonly maximumPoints?: number;
 }

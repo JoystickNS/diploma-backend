@@ -237,11 +237,7 @@ export class JournalsService {
     const journalUmkInfo = await this.prisma.journal.findUnique({
       select: {
         id: true,
-        control: {
-          select: {
-            name: true,
-          },
-        },
+        controlId: true,
         lectureHours: true,
         practiceHours: true,
         laboratoryHours: true,
@@ -257,6 +253,7 @@ export class JournalsService {
             id: true,
             workType: {
               select: {
+                id: true,
                 name: true,
               },
             },
@@ -288,14 +285,9 @@ export class JournalsService {
       throw new NotFoundException("Журнал не найден");
     }
 
-    const attestations = journalUmkInfo.attestations
-      .filter((attestation) => attestation.workType)
-      .map((attestation) => ({
-        id: attestation.id,
-        workType: attestation.workType.name,
-        workTopic: attestation.workTopic,
-        maximumPoints: attestation.maximumPoints,
-      }));
+    const attestations = journalUmkInfo.attestations.filter(
+      (attestation) => attestation.workType
+    );
 
     const lectureTopics = journalUmkInfo.lessons
       .filter(
@@ -335,7 +327,7 @@ export class JournalsService {
 
     return {
       id: journalUmkInfo.id,
-      control: journalUmkInfo.control.name,
+      controlId: journalUmkInfo.controlId,
       lectureHours: journalUmkInfo.lectureHours,
       practiceHours: journalUmkInfo.practiceHours,
       laboratoryHours: journalUmkInfo.laboratoryHours,
@@ -572,7 +564,6 @@ export class JournalsService {
         },
       },
       select: {
-        id: true,
         isAbsent: true,
         lessonId: true,
         studentId: true,

@@ -354,13 +354,14 @@ model StudentsOnAttestations {
 }
 
 model Visit {
-  id       Int     @id @default(autoincrement()) @db.UnsignedInt
   isAbsent Boolean @default(false) @map("is_absent")
 
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId Int     @map("student_id") @db.UnsignedInt
   lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   lessonId  Int     @map("lesson_id") @db.UnsignedInt
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int     @map("student_id") @db.UnsignedInt
+
+  @@id([lessonId, studentId])
 }
 
 // ------------------END ATTESTATIONS && GRADES && JOURNALS && LESSONS && POINTS && VISITS------------------ //
