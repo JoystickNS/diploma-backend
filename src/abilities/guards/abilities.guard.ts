@@ -6,8 +6,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { AccessObjectEnum, ActionEnum, Journal } from "@prisma/client";
-import { ExceptionMessages } from "../../constants/exception-messages";
+import { AccessSubjectEnum, Journal } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AbilitiesFactory } from "../abilities.factory";
 import { CHECK_ABILITIES } from "../decorators/check-abilities.decorator";
@@ -46,7 +45,7 @@ export class AbilitiesGuard implements CanActivate {
 
     try {
       requiredRules.forEach((rule) => {
-        if (rule.object === AccessObjectEnum.Journal) {
+        if (rule.subject === AccessSubjectEnum.Journal) {
           ForbiddenError.from(ability)
             .setMessage("Вы можете просматривать только свои журналы")
             .throwUnlessCan(rule.action, subject("Journal", journal));

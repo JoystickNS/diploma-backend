@@ -23,6 +23,9 @@ import { AttestationsModule } from "./attestations/attestations.module";
 import { StudentsModule } from "./students/students.module";
 import { SubgroupsModule } from "./subgroups/subgroups.module";
 import { VisitsModule } from './visits/visits.module';
+import { AnnotationsModule } from './annotations/annotations.module';
+import { PointsModule } from './points/points.module';
+import { AttestationsOnStudentsModule } from './attestations-on-students/attestations-on-students.module';
 
 @Module({
   imports: [
@@ -50,6 +53,9 @@ import { VisitsModule } from './visits/visits.module';
     StudentsModule,
     SubgroupsModule,
     VisitsModule,
+    AnnotationsModule,
+    PointsModule,
+    AttestationsOnStudentsModule,
   ],
   providers: [
     {

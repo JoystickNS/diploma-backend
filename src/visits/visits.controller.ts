@@ -6,7 +6,7 @@ import { VisitsService } from "./visits.service";
 export class VisitsController {
   constructor(private readonly visitsService: VisitsService) {}
 
-  @Patch(":journalId/lessons/:lessonId/visits/:visitId")
+  @Patch(":journalId/lessons/:lessonId/students/:studentId/visits")
   async update(@Body() dto: UpdateVisitDto) {
     return this.visitsService.update(dto);
   }

@@ -18,9 +18,9 @@ export class PermissionsService {
         role: true,
         permission: {
           select: {
-            accessObject: {
+            accessSubject: {
               select: {
-                accessObject: true,
+                accessSubject: true,
               },
             },
             action: {
@@ -35,7 +35,7 @@ export class PermissionsService {
 
     return permissions.map((permission) => ({
       role: permission.role.role,
-      object: permission.permission.accessObject.accessObject,
+      subject: permission.permission.accessSubject.accessSubject,
       action: permission.permission.action.action,
     }));
   }
@@ -57,9 +57,9 @@ export class PermissionsService {
         },
         permission: {
           select: {
-            accessObject: {
+            accessSubject: {
               select: {
-                accessObject: true,
+                accessSubject: true,
               },
             },
             action: {
@@ -85,14 +85,14 @@ export class PermissionsService {
       if (permission.role.role === RoleEnum.Teacher) {
         return {
           action: permission.permission.action.action,
-          object: permission.permission.accessObject.accessObject,
+          subject: permission.permission.accessSubject.accessSubject,
           conditions: { userId },
         };
       }
 
       return {
         action: permission.permission.action.action,
-        object: permission.permission.accessObject.accessObject,
+        subject: permission.permission.accessSubject.accessSubject,
       };
     });
   }

@@ -2,11 +2,13 @@ import { AbilityBuilder, AbilityClass, subject } from "@casl/ability";
 import { PrismaAbility, Subjects } from "@casl/prisma";
 import { Injectable } from "@nestjs/common";
 import {
-  AccessObject,
-  AccessObjectEnum,
+  AccessSubject,
+  AccessSubjectEnum,
   Action,
   ActionEnum,
+  Annotation,
   Attestation,
+  AttestationsOnStudents,
   Control,
   Discipline,
   Grade,
@@ -22,7 +24,6 @@ import {
   Role,
   RolesOnPermissions,
   Student,
-  StudentsOnAttestations,
   StudentsOnGroups,
   StudentsOnSubgroups,
   StudentStatus,
@@ -44,9 +45,11 @@ type AppAbility = PrismaAbility<
   [
     ActionEnum,
     Subjects<{
-      AccessObject: AccessObject;
+      Annotation: Annotation;
+      AccessSubject: AccessSubject;
       Action: Action;
       Attestation: Attestation;
+      AttestationsOnStudents: AttestationsOnStudents;
       Control: Control;
       Discipline: Discipline;
       Grade: Grade;
@@ -64,7 +67,6 @@ type AppAbility = PrismaAbility<
       Student: Student;
       StudentStatus: StudentStatus;
       StudentStatusesOnStudents: StudentStatusesOnStudents;
-      StudentsOnAttestations: StudentsOnAttestations;
       StudentsOnGroups: StudentsOnGroups;
       StudentsOnSubgroups: StudentsOnSubgroups;
       Subgroup: Subgroup;
@@ -81,10 +83,7 @@ type AppAbility = PrismaAbility<
 
 @Injectable()
 export class AbilitiesFactory {
-  constructor(
-    private readonly permissionsService: PermissionsService,
-    private readonly rolesService: RolesService
-  ) {}
+  constructor(private readonly permissionsService: PermissionsService) {}
 
   async defineAbilities(user: JwtPayload) {
     const AppAbility = PrismaAbility as AbilityClass<AppAbility>;
@@ -93,7 +92,7 @@ export class AbilitiesFactory {
 
     if (permissions) {
       permissions.forEach((permission) => {
-        builder.can(permission.action, AccessObjectEnum.Journal, {
+        builder.can(permission.action, AccessSubjectEnum.Journal, {
           ...permission.conditions,
         });
       });

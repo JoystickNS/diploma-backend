@@ -8,7 +8,6 @@ import * as moment from "moment";
 import { ExceptionMessages } from "../constants/exception-messages";
 import { LECTURE, PRACTICE, LABORATORY } from "../constants/lessons";
 import { PrismaService } from "../prisma/prisma.service";
-import { calcSemester } from "../utils/utils";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { GetJournalListDto } from "./dto/get-journal-umk.dto";
 
@@ -21,6 +20,7 @@ export class JournalsService {
       controlId,
       disciplineId,
       groupId,
+      semester,
       laboratoryHours,
       lectureHours,
       practiceHours,
@@ -52,6 +52,7 @@ export class JournalsService {
               id: userId,
             },
           },
+          semester,
           laboratoryHours,
           lectureHours,
           practiceHours,
@@ -189,6 +190,7 @@ export class JournalsService {
             middleName: true,
           },
         },
+        semester: true,
         subgroups: {
           select: {
             subgroup: {
@@ -225,10 +227,7 @@ export class JournalsService {
           lastName: journal.user.lastName,
           middleName: journal.user.middleName,
         },
-        semester: calcSemester(
-          journal.subgroups[0].subgroup.group.startYear,
-          moment(journal.createdAt)
-        ),
+        semester: journal.semester,
       };
     });
   }
@@ -246,6 +245,16 @@ export class JournalsService {
           select: {
             grade: true,
             minimumPoints: true,
+          },
+        },
+        lessonTopics: {
+          select: {
+            name: true,
+            lessonType: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         attestations: {
@@ -289,30 +298,29 @@ export class JournalsService {
       (attestation) => attestation.workType
     );
 
-    const lectureTopics = journalUmkInfo.lessons
+    const lectureTopics = journalUmkInfo.lessonTopics
       .filter(
-        (lesson) =>
-          lesson.lessonTopic && lesson.lessonTopic.lessonType.name === LECTURE
+        (lessonTopic) =>
+          lessonTopic.name && lessonTopic.lessonType.name === LECTURE
       )
-      .map((lesson) => ({
-        name: lesson.lessonTopic.name,
+      .map((lessonTopic) => ({
+        name: lessonTopic.name,
       }));
-    const practiceTopics = journalUmkInfo.lessons
+    const practiceTopics = journalUmkInfo.lessonTopics
       .filter(
-        (lesson) =>
-          lesson.lessonTopic && lesson.lessonTopic.lessonType.name === PRACTICE
+        (lessonTopic) =>
+          lessonTopic.name && lessonTopic.lessonType.name === PRACTICE
       )
-      .map((lesson) => ({
-        name: lesson.lessonTopic.name,
+      .map((lessonTopic) => ({
+        name: lessonTopic.name,
       }));
-    const laboratoryTopics = journalUmkInfo.lessons
+    const laboratoryTopics = journalUmkInfo.lessonTopics
       .filter(
-        (lesson) =>
-          lesson.lessonTopic &&
-          lesson.lessonTopic.lessonType.name === LABORATORY
+        (lessonTopic) =>
+          lessonTopic.name && lessonTopic.lessonType.name === LABORATORY
       )
-      .map((lesson) => ({
-        name: lesson.lessonTopic.name,
+      .map((lessonTopic) => ({
+        name: lessonTopic.name,
       }));
 
     const pointsForThree = journalUmkInfo.grades.find(
@@ -359,6 +367,7 @@ export class JournalsService {
             name: true,
           },
         },
+        semester: true,
         lectureHours: true,
         practiceHours: true,
         laboratoryHours: true,
@@ -435,13 +444,6 @@ export class JournalsService {
             },
             workTopic: true,
             maximumPoints: true,
-            // students: {
-            //   select: {
-            //     credited: true,
-            //     pointsOrGrade: true,
-            //     studentId: true,
-            //   },
-            // },
           },
         },
         subgroups: {
@@ -484,7 +486,7 @@ export class JournalsService {
           subgroupId: true,
         },
         where: {
-          journalId: journalFullInfo.id,
+          journalId,
         },
       })
     ).map((subgroup) => subgroup.subgroupId);
@@ -524,6 +526,23 @@ export class JournalsService {
         groupId: journalFullInfo.subgroups[0].subgroup.group.id,
         dateOfDischarge: null,
       },
+      orderBy: [
+        {
+          student: {
+            lastName: "asc",
+          },
+        },
+        {
+          student: {
+            firstName: "asc",
+          },
+        },
+        {
+          student: {
+            middleName: "asc",
+          },
+        },
+      ],
     });
 
     const lessonTypes = await this.prisma.lessonType.findMany({
@@ -542,7 +561,7 @@ export class JournalsService {
 
     const lessonIds = journalFullInfo.lessons.map((lesson) => lesson.id);
 
-    const points = await this.prisma.points.findMany({
+    const annotations = await this.prisma.annotation.findMany({
       where: {
         lessonId: {
           in: lessonIds,
@@ -550,10 +569,24 @@ export class JournalsService {
       },
       select: {
         id: true,
-        annotation: true,
-        numberOfPoints: true,
+        name: true,
         lessonId: true,
+      },
+    });
+
+    const points = await this.prisma.points.findMany({
+      where: {
+        annotation: {
+          lessonId: {
+            in: lessonIds,
+          },
+        },
+      },
+      select: {
+        id: true,
+        numberOfPoints: true,
         studentId: true,
+        annotationId: true,
       },
     });
 
@@ -569,6 +602,55 @@ export class JournalsService {
         studentId: true,
       },
     });
+
+    const attestationIds = (
+      await this.prisma.attestation.findMany({
+        where: {
+          journalId,
+          workType: {
+            isNot: null,
+          },
+        },
+        select: {
+          id: true,
+        },
+      })
+    ).map((attestationId) => attestationId.id);
+
+    const attestationsOnStudents =
+      await this.prisma.attestationsOnStudents.findMany({
+        where: {
+          attestation: {
+            students: {
+              some: {
+                attestationId: {
+                  in: attestationIds,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    const controlAttestationId = (
+      await this.prisma.attestation.findFirst({
+        where: {
+          journalId,
+          workType: null,
+        },
+        select: {
+          id: true,
+        },
+      })
+    ).id;
+
+    const controlOnStudents = await this.prisma.attestationsOnStudents.findMany(
+      {
+        where: {
+          attestationId: controlAttestationId,
+        },
+      }
+    );
 
     return {
       id: journalFullInfo.id,
@@ -587,10 +669,7 @@ export class JournalsService {
           value: subgroup.subgroup.subgroupNumber.value,
         },
       })),
-      semester: calcSemester(
-        journalFullInfo.subgroups[0].subgroup.group.startYear,
-        moment(journalFullInfo.createdAt)
-      ),
+      semester: journalFullInfo.semester,
       control: {
         id: journalFullInfo.control.id,
         name: journalFullInfo.control.name,
@@ -614,10 +693,9 @@ export class JournalsService {
           : null,
         workTopic: attestation?.workTopic,
         maximumPoints: attestation?.maximumPoints,
-        // students: attestation.students.map((student) => ({
-        //   ...student,
-        // })),
       })),
+      attestationsOnStudents,
+      controlOnStudents,
       lessons: journalFullInfo.lessons.map((lesson) => ({
         id: lesson.id,
         conducted: lesson.conducted,
@@ -641,6 +719,7 @@ export class JournalsService {
           subgroupNumber: subgroup.subgroup.subgroupNumber,
         })),
       })),
+      annotations,
       points,
       visits,
       lessonTypes: lessonTypes.map((lessonType) => ({

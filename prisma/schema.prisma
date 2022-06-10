@@ -27,17 +27,17 @@ enum ActionEnum {
   Delete
 }
 
-model AccessObject {
+model AccessSubject {
   id   Int    @id @default(autoincrement()) @db.UnsignedSmallInt
   name String @db.VarChar(50)
 
-  permissions  Permission[]
-  accessObject AccessObjectEnum @map("access_object")
+  permissions   Permission[]
+  accessSubject AccessSubjectEnum @map("access_subject")
 
-  @@map("access_object")
+  @@map("access_subject")
 }
 
-enum AccessObjectEnum {
+enum AccessSubjectEnum {
   Admin
   Journal
   Report
@@ -48,10 +48,10 @@ model Permission {
 
   roles RolesOnPermissions[]
 
-  accessObject   AccessObject @relation(fields: [accessObjectId], references: [id], onDelete: Cascade)
-  accessObjectId Int          @map("access_object_id") @db.UnsignedSmallInt
-  action         Action       @relation(fields: [actionId], references: [id], onDelete: Cascade)
-  actionId       Int          @map("action_id") @db.UnsignedSmallInt
+  accessSubject   AccessSubject @relation(fields: [accessSubjectId], references: [id], onDelete: Cascade)
+  accessSubjectId Int           @map("access_subject_id") @db.UnsignedSmallInt
+  action          Action        @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId        Int           @map("action_id") @db.UnsignedSmallInt
 }
 
 model Role {
@@ -133,7 +133,7 @@ model Student {
   passportID   String @unique @map("passport_ID") @db.VarChar(6)
   recordBookID String @unique @map("record_book_ID") @db.VarChar(6)
 
-  attestations StudentsOnAttestations[]
+  attestations AttestationsOnStudents[]
   groups       StudentsOnGroups[]
   visits       Visit[]
   points       Points[]
@@ -222,12 +222,22 @@ model SubgroupsOnJournals {
 
 // ------------------START ATTESTATIONS && GRADES && JOURNALS && LESSONS && POINTS && VISITS------------------ //
 
+model Annotation {
+  id   Int     @id @default(autoincrement()) @db.UnsignedInt
+  name String? @db.VarChar(100)
+
+  points Points[]
+
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId Int    @map("lesson_id") @db.UnsignedInt
+}
+
 model Attestation {
   id            Int     @id @default(autoincrement()) @db.UnsignedInt
   workTopic     String? @map("work_topic") @db.VarChar(250)
   maximumPoints Int?    @map("maximum_points") @db.UnsignedSmallInt
 
-  students StudentsOnAttestations[]
+  students AttestationsOnStudents[]
 
   workType   WorkType? @relation(fields: [workTypeId], references: [id], onDelete: Cascade)
   workTypeId Int?      @map("work_type_id") @db.UnsignedTinyInt
@@ -249,6 +259,7 @@ model Journal {
   laboratoryHours Int      @map("laboratory_hours") @db.UnsignedSmallInt
   maximumPoints   Int?     @map("maximum_points") @db.UnsignedSmallInt
   createdAt       DateTime @default(now()) @map("created_at")
+  semester        Int      @db.UnsignedTinyInt
   deleted         Boolean  @default(false)
 
   attestations Attestation[]
@@ -282,9 +293,9 @@ model Lesson {
   conducted Boolean  @default(false)
   date      DateTime @db.DateTime()
 
-  visits    Visit[]
-  points    Points[]
-  subgroups LessonsOnSubgroups[]
+  annotations Annotation[]
+  visits      Visit[]
+  subgroups   LessonsOnSubgroups[]
 
   journal       Journal      @relation(fields: [journalId], references: [id], onDelete: Cascade)
   journalId     Int          @map("journal_id") @db.UnsignedInt
@@ -330,19 +341,21 @@ model LessonType {
 }
 
 model Points {
-  id             Int     @id @default(autoincrement()) @db.UnsignedInt
-  annotation     String? @db.VarChar(100)
-  numberOfPoints Int     @map("number_of_points") @db.UnsignedTinyInt
+  id             Int  @id @default(autoincrement()) @db.UnsignedInt
+  numberOfPoints Int? @map("number_of_points") @db.UnsignedTinyInt
 
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId Int     @map("student_id") @db.UnsignedInt
-  lesson    Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  lessonId  Int     @map("lesson_id") @db.UnsignedInt
+  annotation   Annotation @relation(fields: [annotationId], references: [id], onDelete: Cascade)
+  annotationId Int        @map("annotation_id") @db.UnsignedInt
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    Int        @map("student_id") @db.UnsignedInt
+
+  @@unique([annotationId, studentId])
 }
 
-model StudentsOnAttestations {
-  credited      Boolean?
-  pointsOrGrade Int?     @map("points_or_grade") @db.UnsignedTinyInt
+model AttestationsOnStudents {
+  credited Boolean @default(false)
+  points   Int?    @db.UnsignedTinyInt
+  grade    Int?    @db.UnsignedTinyInt
 
   attestation   Attestation @relation(fields: [attestationId], references: [id], onDelete: Cascade)
   attestationId Int         @map("attestation_id") @db.UnsignedInt
@@ -350,7 +363,7 @@ model StudentsOnAttestations {
   studentId     Int         @map("student_id") @db.UnsignedInt
 
   @@id([attestationId, studentId])
-  @@map("student_attestation")
+  @@map("attestation_student")
 }
 
 model Visit {

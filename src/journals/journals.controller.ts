@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
+import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { IAppRequest } from "../interfaces/app-request";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { GetJournalListDto } from "./dto/get-journal-umk.dto";

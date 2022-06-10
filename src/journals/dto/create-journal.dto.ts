@@ -21,6 +21,9 @@ export class CreateJournalDto {
   readonly controlId: number;
 
   @IsInt()
+  readonly semester: number;
+
+  @IsInt()
   @Min(0)
   readonly lectureHours: number;
 
