@@ -10,6 +10,7 @@ import { LECTURE, PRACTICE, LABORATORY } from "../constants/lessons";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { GetJournalListDto } from "./dto/get-journal-umk.dto";
+import { UpdateJournalDto } from "./dto/update-journal.dto";
 
 @Injectable()
 export class JournalsService {
@@ -545,20 +546,6 @@ export class JournalsService {
       ],
     });
 
-    const lessonTypes = await this.prisma.lessonType.findMany({
-      select: {
-        id: true,
-        name: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    });
-
-    if (!lessonTypes) {
-      throw new NotFoundException("Типы занятий не найдены");
-    }
-
     const lessonIds = journalFullInfo.lessons.map((lesson) => lesson.id);
 
     const annotations = await this.prisma.annotation.findMany({
@@ -722,10 +709,6 @@ export class JournalsService {
       annotations,
       points,
       visits,
-      lessonTypes: lessonTypes.map((lessonType) => ({
-        id: lessonType.id,
-        name: lessonType.name,
-      })),
       lessonTopics: journalFullInfo.lessonTopics.map((lessonTopic) => ({
         id: lessonTopic.id,
         name: lessonTopic.name,
@@ -817,5 +800,44 @@ export class JournalsService {
     }
 
     return journalOnGrade;
+  }
+
+  async update(dto: UpdateJournalDto) {
+    // TODO: доделать обновление
+    const {
+      journalId,
+      deleted,
+      laboratoryHours,
+      lectureHours,
+      maximumPoints,
+      practiceHours,
+      pointsForFive,
+      pointsForFour,
+      pointsForThree,
+    } = dto;
+
+    return this.prisma.journal.update({
+      data: {
+        deleted,
+        laboratoryHours,
+        lectureHours,
+        practiceHours,
+        maximumPoints,
+      },
+      where: {
+        id: journalId,
+      },
+    });
+  }
+
+  async delete(journalId: number) {
+    return this.prisma.journal.delete({
+      where: {
+        id: journalId,
+      },
+      select: {
+        id: true,
+      },
+    });
   }
 }

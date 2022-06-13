@@ -1,8 +1,19 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
 import { IAppRequest } from "../interfaces/app-request";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { GetJournalListDto } from "./dto/get-journal-umk.dto";
+import { UpdateJournalDto } from "./dto/update-journal.dto";
 import { JournalsService } from "./journals.service";
 
 @Controller("journals")
@@ -35,5 +46,15 @@ export class JournalsController {
   @Get(":journalId/full-info")
   async getFullInfo(@Param("journalId") journalId: number) {
     return this.journalsService.getJournalFullInfo(journalId);
+  }
+
+  @Patch(":journalId")
+  async update(@Body() dto: UpdateJournalDto) {
+    return this.journalsService.update(dto);
+  }
+
+  @Delete(":journalId")
+  async delete(@Param("journalId") journalId: number) {
+    return this.journalsService.delete(journalId);
   }
 }

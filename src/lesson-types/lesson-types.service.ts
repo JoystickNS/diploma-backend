@@ -6,6 +6,10 @@ export class LessonTypesService {
   constructor(private prisma: PrismaService) {}
 
   async getAll() {
-    return this.prisma.lessonType.findMany();
+    return this.prisma.lessonType.findMany({
+      orderBy: {
+        id: "asc",
+      },
+    });
   }
 }
