@@ -4,7 +4,6 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
-import * as moment from "moment";
 import { ExceptionMessages } from "../constants/exception-messages";
 import { LECTURE, PRACTICE, LABORATORY } from "../constants/lessons";
 import { PrismaService } from "../prisma/prisma.service";
@@ -368,6 +367,14 @@ export class JournalsService {
             name: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            middleName: true,
+          },
+        },
         semester: true,
         lectureHours: true,
         practiceHours: true,
@@ -649,6 +656,7 @@ export class JournalsService {
         id: journalFullInfo.subgroups[0].subgroup.group.id,
         name: journalFullInfo.subgroups[0].subgroup.group.name,
       },
+      user: journalFullInfo.user,
       subgroups: journalFullInfo.subgroups.map((subgroup) => ({
         id: subgroup.subgroup.id,
         subgroupNumber: {

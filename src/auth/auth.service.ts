@@ -153,7 +153,7 @@ export class AuthService {
         this.setRefreshCookie(
           res,
           generatedTokens.refreshToken,
-          updatedToken.expires
+          updatedToken?.expires
         );
 
         return {
@@ -199,7 +199,7 @@ export class AuthService {
     return null;
   }
 
-  private setRefreshCookie(res: Response, value: string, expires: Date) {
+  private setRefreshCookie(res: Response, value: string, expires?: Date) {
     res.cookie("refreshToken", value, {
       ...refreshCookieOptions,
       expires: expires,
