@@ -1,6 +1,6 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Body, Controller, Post } from "@nestjs/common";
 import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
-import { GetStudentsDto } from "./dto/get-students.dto";
+import { ImportManyStudentsDto } from "./dto/import-many-students.dro";
 import { StudentsService } from "./students.service";
 
 @WithoutAuthKey()
@@ -8,8 +8,8 @@ import { StudentsService } from "./students.service";
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
-  @Get() // FIXME: delete later
-  async get(@Query() params: GetStudentsDto) {
-    return this.studentsService.get(params);
+  @Post()
+  async importManyStudents(@Body() dto: ImportManyStudentsDto) {
+    return this.studentsService.importManyStudents(dto);
   }
 }

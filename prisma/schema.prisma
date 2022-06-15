@@ -90,12 +90,12 @@ model Token {
 }
 
 model User {
-  id         Int    @id @default(autoincrement()) @db.UnsignedInt
-  lastName   String @map("last_name") @db.VarChar(30)
-  firstName  String @map("first_name") @db.VarChar(30)
-  middleName String @map("middle_name") @db.VarChar(30)
-  login      String @unique @db.VarChar(30)
-  password   String @db.VarChar(60)
+  id         Int     @id @default(autoincrement()) @db.UnsignedInt
+  lastName   String  @map("last_name") @db.VarChar(30)
+  firstName  String  @map("first_name") @db.VarChar(30)
+  middleName String  @map("middle_name") @db.VarChar(30)
+  login      String  @unique @db.VarChar(30)
+  password   String? @db.VarChar(60)
 
   tokens   Token[]
   roles    UsersOnRoles[]
@@ -126,12 +126,12 @@ model Group {
 }
 
 model Student {
-  id           Int    @id @default(autoincrement()) @db.UnsignedInt
-  lastName     String @map("last_name") @db.VarChar(30)
-  firstName    String @map("first_name") @db.VarChar(30)
-  middleName   String @map("middle_name") @db.VarChar(30)
-  passportID   String @unique @map("passport_ID") @db.VarChar(6)
-  recordBookID String @unique @map("record_book_ID") @db.VarChar(6)
+  id           Int     @id @db.UnsignedInt
+  lastName     String? @map("last_name") @db.VarChar(30)
+  firstName    String? @map("first_name") @db.VarChar(30)
+  middleName   String? @map("middle_name") @db.VarChar(30)
+  passportID   String? @unique @map("passport_ID") @db.VarChar(30)
+  recordBookID String? @unique @map("record_book_ID") @db.VarChar(6)
 
   attestations AttestationsOnStudents[]
   groups       StudentsOnGroups[]

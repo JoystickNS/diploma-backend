@@ -1,13 +1,14 @@
-import { IsString, Length, MaxLength } from "class-validator";
+import { IsOptional, IsString, Length, MaxLength } from "class-validator";
 
 export class CreateUserDto {
   @IsString()
   @Length(6, 30)
   readonly login: string;
 
+  @IsOptional()
   @IsString()
   @Length(8, 30)
-  readonly password: string;
+  readonly password?: string;
 
   @IsString()
   @MaxLength(30)

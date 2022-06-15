@@ -15,14 +15,17 @@ import { ExceptionMessages } from "../constants/exception-messages";
 import { LoginDto } from "./dto/login.dto";
 import { calcTokenLifeTime, refreshCookieOptions } from "../utils/utils";
 import { PermissionsService } from "../permissions/permissions.service";
+import axios from "axios";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private configService: ConfigService,
-    private permissionsService: PermissionsService,
-    private tokensService: TokensService,
-    private usersService: UsersService
+    private readonly configService: ConfigService,
+    private readonly permissionsService: PermissionsService,
+    private readonly tokensService: TokensService,
+    private readonly usersService: UsersService,
+    private readonly prisma: PrismaService
   ) {}
 
   async registration(req: IAppRequest, res: Response, dto: CreateUserDto) {
@@ -63,11 +66,12 @@ export class AuthService {
   }
 
   async login(req: IAppRequest, res: Response, dto: LoginDto) {
+    // axios.post("http://208.ugtu.net/adauth.php")
     const { rememberMe } = dto;
     const userAgent = req.headers["user-agent"];
     const payload = req.user;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...user } = await this.usersService.getById(payload.id);
+    const user = await this.usersService.getById(payload.id);
+    delete user.password;
     const generatedTokens = this.tokensService.generate(new JwtPayload(user));
     const memorizedTokens = await this.tokensService.getAllByUserId(user.id);
     const tokenOptions = {
@@ -184,19 +188,175 @@ export class AuthService {
   }
 
   async validateUser(login: string, password: string) {
-    const user = await this.usersService.getByLogin(login);
+    let result;
 
-    if (!user) {
-      return null;
-    }
+    await this.prisma.$transaction(async (prisma) => {
+      // Поиск пользователя внутри системы по логину
+      let user = await this.usersService.getByLogin(login);
 
-    const isPasswordsEqual = await bcrypt.compare(password, user.password);
+      // Если пользователь создан внутри этой системы
+      if (user && user.password) {
+        const isPasswordsEqual = await bcrypt.compare(password, user.password);
 
-    if (isPasswordsEqual) {
-      return new JwtPayload(user);
-    }
+        if (isPasswordsEqual) {
+          result = new JwtPayload(user);
+          return;
+        }
 
-    return null;
+        result = null;
+        return;
+      }
+
+      // Попытка авторизации в УГТУ
+      const data = (
+        await axios.get(
+          `http://208.ugtu.net/adauth.php?user=${login}&pass=${password}`
+        )
+      ).data;
+
+      console.log(data);
+
+      // Авторизовались успешно
+      if (data.success) {
+        const roles = [];
+        if (data.post.toLowerCase().includes("заведующий кафедрой")) {
+          roles.push("Руководитель");
+        }
+
+        // Является ли пользователь преподавателем
+        if (data.ispps) {
+          roles.push("Преподаватель");
+        }
+
+        if (data.post.toLowerCase().includes("преподаватель")) {
+          // ВРЕМЕННО!!!!!!! // FIXME:
+          roles.push("Преподаватель");
+        }
+
+        // Айдишники старых ролей
+        let oldRoleIds;
+
+        // Если новых ролей нет, то удаляем старые,
+        // если они были и выходим
+        if (roles.length === 0) {
+          if (user && oldRoleIds.length > 0) {
+            // Айдишники старых ролей
+            oldRoleIds = (
+              await prisma.usersOnRoles.findMany({
+                where: {
+                  userId: user.id,
+                },
+              })
+            ).map((oldRoleId) => oldRoleId.roleId);
+
+            await prisma.usersOnRoles.deleteMany({
+              where: {
+                userId: user.id,
+              },
+            });
+          }
+
+          result = null;
+          return;
+        }
+
+        if (user && !oldRoleIds) {
+          // Айдишники старых ролей
+          oldRoleIds = (
+            await prisma.usersOnRoles.findMany({
+              where: {
+                userId: user.id,
+              },
+            })
+          ).map((oldRoleId) => oldRoleId.roleId);
+        }
+
+        // Айдишники новых ролей
+        const newRoleIds = (
+          await prisma.role.findMany({
+            where: {
+              name: {
+                in: roles,
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+        ).map((roleId) => roleId.id);
+
+        if (user) {
+          // Удаление старых ролей, которых нет в новых ролях
+          await Promise.all(
+            oldRoleIds.map(async (oldRoleId) => {
+              if (!newRoleIds.includes(oldRoleId)) {
+                await prisma.usersOnRoles.delete({
+                  where: {
+                    userId_roleId: {
+                      roleId: oldRoleId,
+                      userId: user.id,
+                    },
+                  },
+                });
+              }
+            })
+          );
+
+          // Добавление новых ролей, которых нет в старых ролях
+          await Promise.all(
+            newRoleIds.map(async (newRoleId) => {
+              if (!oldRoleIds.includes(newRoleId)) {
+                await prisma.usersOnRoles.create({
+                  data: {
+                    roleId: newRoleId,
+                    userId: user.id,
+                  },
+                });
+              }
+            })
+          );
+        } else {
+          const name = data.fullname.split(" ");
+
+          // Создание нового пользователя
+          user = await prisma.user.create({
+            data: {
+              login,
+              lastName: name[0],
+              firstName: name[1],
+              middleName: name[2],
+            },
+          });
+
+          // Создание ролей для нового пользователя
+          await Promise.all(
+            newRoleIds.map(
+              async (newRoleId) =>
+                await prisma.usersOnRoles.create({
+                  data: {
+                    roleId: newRoleId,
+                    userId: user.id,
+                  },
+                })
+            )
+          );
+        }
+        user = await prisma.user.findUnique({
+          where: {
+            id: user.id,
+          },
+        });
+        delete user.password;
+
+        result = new JwtPayload(user);
+        return;
+      }
+
+      result = null;
+      return;
+    });
+
+    return result;
   }
 
   private setRefreshCookie(res: Response, value: string, expires?: Date) {
