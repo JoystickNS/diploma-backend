@@ -1,41 +1,38 @@
 import { IsInt, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class ImportStudentDto {
-  @IsOptional()
   @IsInt()
-  id: number;
+  readonly id: number;
+
+  @IsString()
+  @MaxLength(30)
+  readonly lastName: string;
+
+  @IsString()
+  @MaxLength(30)
+  readonly firstName: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(30)
-  lastName: string;
+  readonly middleName: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(30)
-  firstName: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(30)
-  middleName: string;
-
-  @IsOptional()
   @IsString()
   @MaxLength(50)
-  group: string;
+  readonly group: string;
+
+  @IsString()
+  @MaxLength(6)
+  readonly recordBookID: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(6)
-  passportID: string;
+  @MaxLength(20)
+  readonly passportID: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(6)
-  recordBookID: string;
-
-  @IsOptional()
   @IsInt()
-  academ: number;
+  readonly academ: number;
+
+  @IsInt()
+  readonly startYear: number;
 }

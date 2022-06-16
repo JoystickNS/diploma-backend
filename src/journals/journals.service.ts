@@ -136,26 +136,27 @@ export class JournalsService {
         where: {
           groupId,
         },
+        select: {
+          studentId: true,
+        },
       });
 
-      if (!students) {
-        throw new NotFoundException("В выбранной группе нет студентов");
+      if (students) {
+        await prisma.studentsOnSubgroups
+          .createMany({
+            data: [
+              ...students.map((student) => ({
+                studentId: student.studentId,
+                subgroupId: subgroup.id,
+              })),
+            ],
+          })
+          .catch(() => {
+            throw new BadRequestException(
+              "Произошла ошибка при добавлении студентов в подгруппу"
+            );
+          });
       }
-
-      await prisma.studentsOnSubgroups
-        .createMany({
-          data: [
-            ...students.map((student) => ({
-              studentId: student.id,
-              subgroupId: subgroup.id,
-            })),
-          ],
-        })
-        .catch(() => {
-          throw new BadRequestException(
-            "Произошла ошибка при добавлении студентов в подгруппу"
-          );
-        });
 
       await prisma.subgroupsOnJournals
         .create({

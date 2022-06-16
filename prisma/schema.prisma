@@ -127,11 +127,11 @@ model Group {
 
 model Student {
   id           Int     @id @db.UnsignedInt
-  lastName     String? @map("last_name") @db.VarChar(30)
-  firstName    String? @map("first_name") @db.VarChar(30)
+  lastName     String  @map("last_name") @db.VarChar(30)
+  firstName    String  @map("first_name") @db.VarChar(30)
   middleName   String? @map("middle_name") @db.VarChar(30)
-  passportID   String? @unique @map("passport_ID") @db.VarChar(30)
-  recordBookID String? @unique @map("record_book_ID") @db.VarChar(6)
+  passportID   String? @map("passport_ID") @db.VarChar(60)
+  recordBookID String  @map("record_book_ID") @db.VarChar(6)
 
   attestations AttestationsOnStudents[]
   groups       StudentsOnGroups[]
@@ -143,7 +143,7 @@ model Student {
 
 model StudentsOnGroups {
   id              Int       @id @default(autoincrement()) @db.UnsignedInt
-  dateOfIssue     DateTime  @map("date_of_issue")
+  dateOfIssue     DateTime  @default(now()) @map("date_of_issue")
   dateOfDischarge DateTime? @map("date_of_discharge")
 
   group     Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -164,7 +164,8 @@ model StudentStatus {
 }
 
 model StudentStatusesOnStudents {
-  dateOfIssue DateTime  @map("date_of_issue")
+  id          Int       @id @default(autoincrement()) @db.UnsignedInt
+  dateOfIssue DateTime  @default(now()) @map("date_of_issue")
   endDate     DateTime? @map("end_date")
 
   studentStatus   StudentStatus @relation(fields: [studentStatusId], references: [id], onDelete: Cascade)
@@ -172,7 +173,6 @@ model StudentStatusesOnStudents {
   student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId       Int           @map("student_id") @db.UnsignedInt
 
-  @@id([studentStatusId, studentId])
   @@map("student_status_student")
 }
 

@@ -208,10 +208,17 @@ export class AuthService {
       }
 
       // Попытка авторизации в УГТУ
+      // const data = (
+      //   await axios.get(
+      //     `http://208.ugtu.net/adauth.php?user=${login}&pass=${password}`
+      //   )
+      // ).data;
+
       const data = (
-        await axios.get(
-          `http://208.ugtu.net/adauth.php?user=${login}&pass=${password}`
-        )
+        await axios.post("http://208.ugtu.net/adauth.php", {
+          user: login,
+          pass: password,
+        })
       ).data;
 
       console.log(data);
