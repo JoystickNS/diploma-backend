@@ -207,21 +207,13 @@ export class AuthService {
         return;
       }
 
-      // Попытка авторизации в УГТУ
-      // const data = (
-      //   await axios.get(
-      //     `http://208.ugtu.net/adauth.php?user=${login}&pass=${password}`
-      //   )
-      // ).data;
+      const params = new URLSearchParams();
+      params.append("user", login);
+      params.append("pass", password);
 
-      const data = (
-        await axios.post("http://208.ugtu.net/adauth.php", {
-          user: login,
-          pass: password,
-        })
+      const data = await (
+        await axios.post("http://208.ugtu.net/adauth.php", params)
       ).data;
-
-      console.log(data);
 
       // Авторизовались успешно
       if (data.success) {
@@ -232,11 +224,6 @@ export class AuthService {
 
         // Является ли пользователь преподавателем
         if (data.ispps) {
-          roles.push("Преподаватель");
-        }
-
-        if (data.post.toLowerCase().includes("преподаватель")) {
-          // ВРЕМЕННО!!!!!!! // FIXME:
           roles.push("Преподаватель");
         }
 

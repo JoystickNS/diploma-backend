@@ -534,6 +534,16 @@ export class JournalsService {
       where: {
         groupId: journalFullInfo.subgroups[0].subgroup.group.id,
         dateOfDischarge: null,
+        student: {
+          statuses: {
+            every: {
+              endDate: null,
+              studentStatus: {
+                name: "Обучается",
+              },
+            },
+          },
+        },
       },
       orderBy: [
         {
