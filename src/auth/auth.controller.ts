@@ -38,7 +38,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() dto: LoginDto
   ) {
-    console.log(dto);
     return this.authService.login(req, res, dto);
   }
 
