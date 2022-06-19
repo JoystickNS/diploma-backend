@@ -15,7 +15,7 @@ export class UsersService {
   }
 
   async getWithRoles(dto: GetUsersRolesDto) {
-    const { login, roles, skip, take, name } = dto;
+    const { login, roles, skip = 0, take = 10, name } = dto;
     const where = {} as Prisma.UserWhereInput;
 
     if (login) {
@@ -91,8 +91,8 @@ export class UsersService {
           },
         },
       },
-      skip: skip ? skip : 0,
-      take: take ? take : 10,
+      skip,
+      take,
     });
     const totalCount = await this.prisma.user.count({
       where,

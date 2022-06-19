@@ -1,14 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { RoleEnum } from "@prisma/client";
+import { AccessSubjectEnum, ActionEnum } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { RolesService } from "../roles/roles.service";
 import { UsersService } from "../users/users.service";
 
 @Injectable()
 export class PermissionsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly rolesService: RolesService,
     private readonly usersService: UsersService
   ) {}
 
@@ -47,53 +45,72 @@ export class PermissionsService {
       throw new NotFoundException();
     }
 
-    const permissions = await this.prisma.rolesOnPermissions.findMany({
-      distinct: ["permissionId"],
-      select: {
-        role: {
-          select: {
-            role: true,
-          },
-        },
-        permission: {
-          select: {
-            accessSubject: {
-              select: {
-                accessSubject: true,
-              },
-            },
-            action: {
-              select: {
-                action: true,
+    const permissions = await this.prisma.permission.findMany({
+      where: {
+        roles: {
+          some: {
+            role: {
+              users: {
+                some: {
+                  userId,
+                },
               },
             },
           },
         },
       },
-      where: {
-        role: {
-          users: {
-            some: {
-              userId,
+      select: {
+        roles: {
+          select: {
+            role: {
+              select: {
+                role: true,
+              },
             },
+          },
+        },
+        accessSubject: {
+          select: {
+            accessSubject: true,
+          },
+        },
+        action: {
+          select: {
+            action: true,
           },
         },
       },
     });
 
-    return permissions.map((permission) => {
-      if (permission.role.role === RoleEnum.Teacher) {
+    const result = permissions.map((permission) => {
+      if (
+        permission.accessSubject.accessSubject === AccessSubjectEnum.Journal
+      ) {
         return {
-          action: permission.permission.action.action,
-          subject: permission.permission.accessSubject.accessSubject,
+          action: permission.action.action,
+          subject: permission.accessSubject.accessSubject,
           conditions: { userId },
         };
       }
 
       return {
-        action: permission.permission.action.action,
-        subject: permission.permission.accessSubject.accessSubject,
+        action: permission.action.action,
+        subject: permission.accessSubject.accessSubject,
       };
     });
+
+    if (
+      result.find(
+        (permission) => permission.subject === AccessSubjectEnum.Report
+      )
+    ) {
+      result.push({
+        action: ActionEnum.Read,
+        subject: AccessSubjectEnum.Journal,
+        conditions: { userId: 0 },
+      });
+    }
+
+    return result;
   }
 }

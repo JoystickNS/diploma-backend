@@ -1,12 +1,13 @@
 import { Controller, Get, NotFoundException } from "@nestjs/common";
-import { WithoutAuthKey } from "../auth/decorators/without-auth-key.decorator";
+import { ActionEnum, AccessSubjectEnum } from "@prisma/client";
+import { CheckAbilities } from "../abilities/decorators/check-abilities.decorator";
 import { RolesService } from "./roles.service";
 
-@WithoutAuthKey()
 @Controller("roles")
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
+  @CheckAbilities({ action: ActionEnum.Read, subject: AccessSubjectEnum.Admin })
   @Get()
   async getAll() {
     const roles = await this.rolesService.getAll();

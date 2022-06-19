@@ -3,12 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { ExceptionMessages } from "../constants/exception-messages";
 import { LECTURE, PRACTICE, LABORATORY } from "../constants/lessons";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateJournalDto } from "./dto/create-journal.dto";
-import { GetJournalListDto } from "./dto/get-journal-umk.dto";
+import { GetJournalsListDto } from "./dto/get-journals-list.dto";
 import { UpdateJournalDto } from "./dto/update-journal.dto";
 
 @Injectable()
@@ -173,16 +173,34 @@ export class JournalsService {
     });
   }
 
-  async getAllList(dto?: GetJournalListDto) {
-    const {
-      deleted = undefined,
-      disciplineId = undefined,
-      userId = undefined,
-    } = dto;
+  async getAllList(dto: GetJournalsListDto) {
+    const { skip = 0, take = 10, disciplineId, groupId, userId } = dto;
+
+    const where = {
+      AND: [
+        {
+          disciplineId,
+          userId,
+          subgroups: {
+            some: {
+              subgroup: {
+                groupId,
+              },
+            },
+          },
+        },
+        {
+          userId: {
+            not: userId,
+          },
+        },
+      ],
+    } as Prisma.JournalWhereInput;
     const journals = await this.prisma.journal.findMany({
       select: {
         id: true,
         createdAt: true,
+        deleted: true,
         discipline: true,
         user: {
           select: {
@@ -208,19 +226,21 @@ export class JournalsService {
           },
         },
       },
-      where: {
-        deleted,
-        disciplineId,
-        userId,
-      },
+      where,
       orderBy: {
         createdAt: "desc",
       },
+      skip,
+      take,
     });
 
-    return journals.map((journal) => {
+    const totalCount = await this.prisma.journal.count({
+      where,
+    });
+    const result = journals.map((journal) => {
       return {
         id: journal.id,
+        deleted: journal.deleted,
         discipline: journal.discipline.name,
         group: journal.subgroups[0].subgroup.group.name,
         user: {
@@ -231,6 +251,88 @@ export class JournalsService {
         semester: journal.semester,
       };
     });
+
+    return {
+      items: result,
+      totalCount,
+    };
+  }
+
+  async getMyList(userId: number, dto: GetJournalsListDto) {
+    const { disciplineId, groupId, skip = 0, take = 10 } = dto;
+
+    const where = {
+      disciplineId,
+      userId,
+      subgroups: {
+        some: {
+          subgroup: {
+            groupId,
+          },
+        },
+      },
+    } as Prisma.JournalWhereInput;
+
+    const journals = await this.prisma.journal.findMany({
+      select: {
+        id: true,
+        createdAt: true,
+        deleted: true,
+        discipline: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            middleName: true,
+          },
+        },
+        semester: true,
+        subgroups: {
+          select: {
+            subgroup: {
+              select: {
+                group: {
+                  select: {
+                    id: true,
+                    name: true,
+                    startYear: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip,
+      take,
+    });
+
+    const totalCount = await this.prisma.journal.count({
+      where,
+    });
+    const result = journals.map((journal) => {
+      return {
+        id: journal.id,
+        deleted: journal.deleted,
+        discipline: journal.discipline.name,
+        group: journal.subgroups[0].subgroup.group.name,
+        user: {
+          firstName: journal.user.firstName,
+          lastName: journal.user.lastName,
+          middleName: journal.user.middleName,
+        },
+        semester: journal.semester,
+      };
+    });
+
+    return {
+      items: result,
+      totalCount,
+    };
   }
 
   async getUmkInfoById(journalId: number) {
@@ -668,6 +770,7 @@ export class JournalsService {
         name: journalFullInfo.subgroups[0].subgroup.group.name,
       },
       user: journalFullInfo.user,
+      userId: journalFullInfo.user.id,
       subgroups: journalFullInfo.subgroups.map((subgroup) => ({
         id: subgroup.subgroup.id,
         subgroupNumber: {

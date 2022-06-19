@@ -6,8 +6,9 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { AccessSubjectEnum, Journal } from "@prisma/client";
+import { AccessSubjectEnum, ActionEnum, RoleEnum } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import { RolesService } from "../../roles/roles.service";
 import { AbilitiesFactory } from "../abilities.factory";
 import { CHECK_ABILITIES } from "../decorators/check-abilities.decorator";
 import { IRequiredRule } from "../interfaces/required-rule.interface";
@@ -17,6 +18,7 @@ export class AbilitiesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly caslAbilityFactory: AbilitiesFactory,
+    private readonly rolesService: RolesService,
     private readonly prisma: PrismaService
   ) {}
 
@@ -33,34 +35,68 @@ export class AbilitiesGuard implements CanActivate {
 
     const { user, params } = context.switchToHttp().getRequest();
     const ability = await this.caslAbilityFactory.defineAbilities(user);
-    let journal: Journal;
 
-    if (params.journalId) {
-      journal = await this.prisma.journal.findUnique({
-        where: {
-          id: +params.journalId,
-        },
-      });
+    let journal;
+    let userRoles;
+
+    if (
+      requiredRules.find(
+        (requiredRule) => requiredRule.subject === AccessSubjectEnum.Journal
+      )
+    ) {
+      if (
+        !requiredRules.find(
+          (requiredRule) => requiredRule.action === ActionEnum.Create
+        )
+      ) {
+        journal = await this.prisma.journal.findUnique({
+          where: {
+            id: +params.journalId,
+          },
+        });
+      }
+
+      userRoles = await this.rolesService.getByUserId(user.id);
     }
 
     try {
       requiredRules.forEach((rule) => {
         if (rule.subject === AccessSubjectEnum.Journal) {
-          ForbiddenError.from(ability)
-            .setMessage("Вы можете просматривать только свои журналы")
-            .throwUnlessCan(rule.action, subject("Journal", journal));
+          // Выдача прав нап чтение руководителю
+          if (
+            rule.action === ActionEnum.Read &&
+            userRoles.find((userRole) => userRole === RoleEnum.Manager)
+          ) {
+            ForbiddenError.from(ability).throwUnlessCan(
+              rule.action,
+              rule.subject
+            );
+          } else if (rule.action === ActionEnum.Create) {
+            ForbiddenError.from(ability).throwUnlessCan(
+              rule.action,
+              rule.subject
+            );
+          } else {
+            ForbiddenError.from(ability).throwUnlessCan(
+              rule.action,
+              subject("Journal", journal)
+            );
+          }
         } else {
-          ForbiddenError.from(ability)
-            .setMessage("Нет доступа")
-            .throwUnlessCan(rule.action, "Permission");
+          ForbiddenError.from(ability).throwUnlessCan(
+            rule.action,
+            rule.subject
+          );
         }
       });
 
       return true;
     } catch (error) {
       if (error instanceof ForbiddenError) {
-        throw new ForbiddenException(error.message);
+        throw new ForbiddenException();
       }
     }
+
+    return true;
   }
 }

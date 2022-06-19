@@ -66,7 +66,6 @@ export class AuthService {
   }
 
   async login(req: IAppRequest, res: Response, dto: LoginDto) {
-    // axios.post("http://208.ugtu.net/adauth.php")
     const { rememberMe } = dto;
     const userAgent = req.headers["user-agent"];
     const payload = req.user;
